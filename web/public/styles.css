@@ -55,10 +55,20 @@ body {
   background: var(--bg);
   color: var(--text);
   font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-wrap: break-word;
 }
 a { color: var(--link); }
-h1, h2 { line-height: 1.25; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; }
+h1, h2 { line-height: 1.25; overflow-wrap: break-word; }
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+  background: var(--accent-soft);
+  padding: .1em .35em;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+/* form controls at ≥16px so iOS Safari doesn't zoom the viewport on focus */
+input, select, textarea { font-size: 16px; }
 
 /* header + search */
 .site-header {
@@ -81,14 +91,14 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .site-nav {
   order: 1;
   display: flex;
-  gap: 14px;
-  font-size: .9rem;
+  gap: 16px;
+  font-size: .95rem;
 }
-.site-nav a { color: var(--muted); text-decoration: none; }
+.site-nav a { color: var(--muted); text-decoration: none; padding: 4px 0; }
 .site-nav a:hover { color: var(--text); }
 .search {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
   flex: 1 1 100%;
@@ -97,6 +107,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 }
 @media (min-width: 760px) {
   .search { flex: 1 1 280px; order: 2; }
+}
+
+/* compact mobile header: logo mark only, single line of controls, search below */
+@media (max-width: 560px) {
+  .site-header { padding: 11px 14px; gap: 10px 12px; }
+  .brand { font-size: 1.5rem; }
+  .brand span { display: none; }
+  .site-nav { font-size: 1rem; gap: 18px; }
+  .theme-toggle { width: 40px; height: 40px; }
+  .search input[type=search] { padding: 11px 12px; }
+  .search button { padding: 11px 16px; }
 }
 
 /* theme toggle */
@@ -141,6 +162,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 46px;
   padding: 8px 12px;
   text-decoration: none;
   color: var(--text);
@@ -262,10 +284,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 
 /* explore grid */
 .explore { margin-top: 36px; }
-.explore-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.explore-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; }
 .explore-head h2 {
   font-size: .95rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0;
 }
+.explore-actions { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: .88rem; }
+.explore-actions a { color: var(--link); text-decoration: none; }
 .reshuffle {
   border: 1px solid var(--line);
   background: var(--surface);
@@ -381,27 +405,22 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .result-grid .gloss { font-size: .85rem; color: var(--muted); }
 .count { color: var(--muted); font-size: .85rem; }
 
-/* kanji detail */
+/* kanji detail — mobile: single flowing column, interleaved via `order`.
+   The .kd-info / .kd-visual wrappers collapse (display:contents) so their
+   sections become direct flex children of .kd-hero. */
 .kd-hero {
-  display: grid;
-  gap: 24px 44px;
-  grid-template-columns: 1fr;
-  margin-bottom: 4px;
-}
-@media (min-width: 780px) {
-  .kd-hero {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
-}
-.kd-info,
-.kd-visual {
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 26px;
+  margin-bottom: 4px;
 }
-.kd-visual { gap: 22px; }
+.kd-info,
+.kd-visual { display: contents; }
+.kanji-card    { order: 1; }
+.kd-meanings   { order: 2; }
+.kd-origin     { order: 3; }
+.kd-components { order: 4; }
+
 .kd-info h2,
 .kd-visual h2 {
   font-size: 1.05rem;
@@ -410,31 +429,27 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   color: var(--muted);
   margin: 0 0 .5em;
 }
-@media (max-width: 779px) { .kd-visual { order: -1; } }
-.origin-text { font-size: 1.1rem; line-height: 1.75; max-width: 42em; margin: 0; }
+.origin-text { font-size: 1.08rem; line-height: 1.7; max-width: 42em; margin: 0; }
 
-/* the character card (top of the right column) */
+/* the character card */
 .kanji-card {
-  margin: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 340px;
-  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 12px 36px rgba(0, 0, 0, .06);
 }
 .kanji-card .stroke-view {
-  width: 100%;
-  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg);
 }
-.kanji-card .stroke-controls { justify-content: center; margin: 0; }
+.kanji-card .stroke-controls { margin: 0; }
 .kanji-card-cap {
   display: flex;
   align-items: baseline;
@@ -446,19 +461,44 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .cc-char { font-size: 1.7rem; line-height: 1; font-weight: 600; }
 .cc-count { color: var(--muted); font-size: .82rem; }
 
-.stroke-view { width: min(280px, 70vw); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.stroke-view { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .stroke-view svg { display: block; width: 100%; height: auto; color: var(--text); }
-.stroke-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.stroke-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
 .stroke-controls button {
-  font-size: .82rem;
-  padding: 5px 10px;
+  font-size: .9rem;
+  min-height: 44px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
 }
 .kvg-num { paint-order: stroke; }
+
+/* kanji detail — desktop: two columns, inline stroke toolbar */
+@media (min-width: 860px) {
+  .kd-hero { flex-direction: row; align-items: flex-start; gap: 44px; }
+  .kd-info,
+  .kd-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .kd-visual { gap: 22px; }
+  .kanji-card, .kd-meanings, .kd-origin, .kd-components { order: 0; }
+  .kanji-card { margin: 0; align-self: start; }
+  .kanji-card .stroke-controls { justify-content: center; }
+  .stroke-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stroke-controls button { min-height: 0; padding: 6px 11px; font-size: .84rem; flex: 1 1 auto; }
+}
 
 .kd-block { margin-top: 34px; }
 .kd-block h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: .5em; }
@@ -508,11 +548,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .site-footer { border-top: 1px solid var(--line); padding: 20px; text-align: center; color: var(--muted); font-size: .85rem; }
 .site-footer a { color: var(--link); }
 
-@media (max-width: 520px) {
-  .rlabel { display: block; min-width: 0; }
-  .kd-hero { gap: 16px; }
-}
-
 /* linkified kanji in prose */
 .kref {
   color: inherit;
@@ -536,9 +571,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .wl-word { font-size: 1.15rem; }
 .wl-reading { color: var(--muted); font-size: .95rem; }
 .wl-gloss { color: var(--muted); font-size: .9rem; }
-@media (max-width: 560px) {
-  .word-list li { grid-template-columns: 1fr; gap: 1px; }
-}
 
 /* related kanji rails */
 .related-row { margin: 14px 0; }
@@ -581,18 +613,18 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 }
 .browse-filters label { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
 .browse-filters select {
-  padding: 6px 8px;
+  padding: 9px 8px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--bg);
   color: var(--text);
-  font-size: .9rem;
 }
 .browse-filters button {
-  padding: 7px 16px; border: 0; border-radius: 7px;
-  background: var(--accent); color: #fff; cursor: pointer; font-size: .9rem;
+  min-height: 44px;
+  padding: 8px 18px; border: 0; border-radius: 7px;
+  background: var(--accent); color: #fff; cursor: pointer; font-size: .95rem;
 }
-.browse-reset { align-self: center; color: var(--link); font-size: .85rem; }
+.browse-reset { align-self: center; color: var(--link); font-size: .9rem; padding: 8px 4px; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 24px 0; font-size: .9rem; }
 .pager a { color: var(--link); text-decoration: none; }
 .pager span { color: var(--muted); }
@@ -612,15 +644,62 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .rad-strokes { font-size: .78rem; color: var(--muted); padding-top: 8px; text-align: right; }
 .rad-parts { display: flex; flex-wrap: wrap; gap: 5px; }
 .rad-btn {
-  min-width: 2.1em; height: 2.1em; padding: 0 .3em;
+  min-width: 40px; height: 40px; padding: 0 .3em;
   border: 1px solid var(--line); border-radius: 7px;
   background: var(--surface); color: var(--text);
-  font-size: 1.1rem; line-height: 1; cursor: pointer;
+  font-size: 1.2rem; line-height: 1; cursor: pointer;
 }
 .rad-btn:hover { border-color: var(--accent); }
 .rad-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
 .rad-results-wrap { margin-top: 20px; }
 
-@media (max-width: 520px) {
-  .rad-group { grid-template-columns: 1.6em 1fr; }
+/* ============================ mobile ============================ */
+@media (max-width: 640px) {
+  .wrap { padding: 22px 16px 56px; }
+  .kd-hero { gap: 20px; }
+  .kanji-card { max-width: 320px; }
+  .kanji-card .stroke-view { max-width: 260px; margin: 0 auto; }
+
+  /* home hero — fewer drifting glyphs, gentler on low-end GPUs */
+  .drift span:nth-child(n+13) { display: none; }
+  .hero { padding: 26px 18px; }
+  .hero h1 { font-size: clamp(1.7rem, 7vw, 2.2rem); }
+  .lede { font-size: 1rem; }
+  .hero-search { flex-wrap: wrap; }
+  .hero-search input[type=search],
+  .hero-search button { flex: 1 1 100%; }
+  .hero-search button { min-height: 46px; }
+  .featured-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+
+  /* result / chip grids */
+  .result-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .kanji-chips a { max-width: none; flex: 1 1 46%; }
+
+  /* kanji detail */
+  .kd-block { margin-top: 26px; }
+  .rlabel { display: block; min-width: 0; margin-bottom: 1px; }
+  .readings > div { margin: 7px 0; }
+  .word-list li { grid-template-columns: 1fr; gap: 1px; padding: 9px 0; }
+  .component { flex: 1 1 100%; }
+
+  /* browse filters — compact 2-up grid; Sort + actions span the row */
+  .browse-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .browse-filters label { font-size: .8rem; }
+  .browse-filters select { width: 100%; }
+  .browse-filters label:nth-child(5),   /* Sort */
+  .browse-filters button,
+  .browse-reset { grid-column: 1 / -1; }
+  .browse-filters button { width: 100%; }
+  .browse-reset { align-self: start; }
+
+  /* radical picker — larger tap targets */
+  .rad-group { grid-template-columns: 1.4em 1fr; gap: 6px; }
+  .rad-strokes { padding-top: 13px; }
+  .rad-parts { gap: 6px; }
+  .rad-btn { min-width: 44px; height: 44px; }
+
+  /* credits — stack term/definition */
+  .credit dl { grid-template-columns: 1fr; gap: 1px; }
+  .credit dt { margin-top: 8px; }
+  .credit dd { margin: 0; }
 }
