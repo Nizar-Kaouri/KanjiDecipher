@@ -253,6 +253,22 @@ function unifiedSearch(q) {
   return { query: raw, direct, meaning, reading, readingKana };
 }
 
+/**
+ * If `s` (a trimmed query or URL segment) should be handled as a whole word,
+ * return its `/word/` path; otherwise null. A word here is a run of 2+ kanji
+ * (no kana / romaji / English) that is either a real JMdict headword or a
+ * sequence of jōyō kanji we can at least break down.
+ */
+function wordRedirectPath(s) {
+  const chars = [...s];
+  if (chars.length < 2 || !chars.every((c) => wanakana.isKanji(c))) return null;
+  const isWord = !!(dictStmts && dictStmts.wordExists.get(s));
+  if (isWord || chars.every((c) => KANJI_SET.has(c))) {
+    return `/word/${encodeURIComponent(s)}`;
+  }
+  return null;
+}
+
 function toChips(rows, exclude = new Set()) {
   return rows
     .filter((r) => !exclude.has(r.literal))
@@ -478,15 +494,8 @@ app.get("/search", (req, res) => {
   }
 
   // A run of 2+ kanji (no kana, no romaji, no English): try it as a whole word.
-  // Redirect to the word page if it's a real dictionary headword, or — failing
-  // that — if every character is a jōyō kanji we can at least break down.
-  const tChars = [...t];
-  if (tChars.length >= 2 && tChars.every((c) => wanakana.isKanji(c))) {
-    const isWord = !!(dictStmts && dictStmts.wordExists.get(t));
-    if (isWord || tChars.every((c) => KANJI_SET.has(c))) {
-      return res.redirect(`/word/${encodeURIComponent(t)}`);
-    }
-  }
+  const wordPath = wordRedirectPath(t);
+  if (wordPath) return res.redirect(wordPath);
 
   const search = unifiedSearch(q);
   const total = search.direct.length + search.meaning.length + search.reading.length;
@@ -542,6 +551,10 @@ app.get("/kanji/:char", (req, res) => {
   const char = decodeURIComponent(req.params.char);
   const kanji = lookupKanji(char);
   if (!kanji) {
+    // A multi-kanji string landed here (old link, hand-typed URL) — it belongs
+    // on the word page.
+    const wordPath = wordRedirectPath(char.trim());
+    if (wordPath) return res.redirect(301, wordPath);
     return res
       .status(404)
       .render("404", { message: `No jōyō kanji “${char}” in the database.`, title: "Not found", noindex: true });
