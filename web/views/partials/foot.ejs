@@ -1,15 +1,4 @@
 </main>
-  <%
-    var _sideRails = (typeof pageClass !== 'undefined') &&
-      (pageClass === 'page-home' || pageClass === 'page-kanji');
-    var _railBase = pageClass === 'page-home' ? 'home' : 'kanji';
-  %>
-  <% if (_sideRails) { %>
-    <div class="page-rail page-rail-right" aria-hidden="true">
-      <%- include('ad', { slot: _railBase + '-right', size: 'skyscraper' }) %>
-    </div>
-  <% } %>
-</div>
 <footer class="site-footer">
   <nav class="footer-links">
     <a href="/about">About</a>

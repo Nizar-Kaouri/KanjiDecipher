@@ -331,36 +331,6 @@ input, select, textarea { font-size: 16px; }
 .featured-grid.just-shuffled a { animation: pop .28s ease-out both; }
 @keyframes pop { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
 
-/* ---------- ad placeholders ---------- */
-.ad-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius);
-  background-color: var(--surface);
-  background-image: repeating-linear-gradient(
-    -45deg, transparent 0 11px, var(--accent-soft) 11px 22px
-  );
-  color: var(--muted);
-  text-align: center;
-}
-.ad-tag { font-size: .62rem; text-transform: uppercase; letter-spacing: .14em; opacity: .7; }
-.ad-note { font-size: .8rem; opacity: .55; }
-.ad-leaderboard { margin: 28px auto 0; width: 100%; max-width: 728px; min-height: 90px; }
-.ad-skyscraper { width: 160px; min-height: 600px; }
-
-/* left/right ad rails (home + kanji pages, wide viewports only) */
-.page-shell.has-rails { display: flex; justify-content: center; gap: 28px; }
-.page-shell.has-rails .wrap { margin-left: 0; margin-right: 0; min-width: 0; }
-.page-rail { display: none; flex: 0 0 160px; }
-.page-rail .ad-slot { position: sticky; top: 20px; }
-@media (min-width: 1340px) {
-  .page-shell.has-rails .page-rail { display: block; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .drift span { animation: none; opacity: .06; top: auto; bottom: 8%; }
   .featured-grid.just-shuffled a { animation: none; }

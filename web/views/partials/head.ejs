@@ -44,6 +44,9 @@
     })();
   </script>
   <link rel="stylesheet" href="/styles.css">
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5298204763157149"
+       crossorigin="anonymous"></script>
 </head>
 <body class="<%= typeof pageClass !== 'undefined' ? pageClass : '' %>">
 <header class="site-header">
@@ -71,15 +74,4 @@
     </svg>
   </button>
 </header>
-<%
-  var _sideRails = (typeof pageClass !== 'undefined') &&
-    (pageClass === 'page-home' || pageClass === 'page-kanji');
-  var _railBase = pageClass === 'page-home' ? 'home' : 'kanji';
-%>
-<div class="page-shell<%= _sideRails ? ' has-rails' : '' %>">
-  <% if (_sideRails) { %>
-    <div class="page-rail page-rail-left" aria-hidden="true">
-      <%- include('ad', { slot: _railBase + '-left', size: 'skyscraper' }) %>
-    </div>
-  <% } %>
   <main class="wrap">

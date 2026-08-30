@@ -5,7 +5,7 @@
  *   so any kanji page you've already opened works without a connection
  * Not offline-first: a page you've never visited still needs the network.
  */
-const CACHE = "kd-v2";
+const CACHE = "kd-v3";
 
 const PRECACHE = [
   "/",

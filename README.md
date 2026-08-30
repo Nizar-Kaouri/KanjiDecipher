@@ -108,7 +108,7 @@ web/
   server.js               Express + node:sqlite (read-only), EJS views
   gen-icons.js            one-off: build the PWA / touch icons  (npm run icons)
   views/                  home, results, kanji, browse, radicals, credits, about, privacy, 404
-  views/partials/         head, foot, ad (placeholder slot)
+  views/partials/         head, foot
   public/                 styles.css, theme.js, suggest.js, home.js, radicals.js,
                           stroke-anim.js, sw.js, manifest.webmanifest, icons/
 ```
@@ -170,32 +170,12 @@ grid of featured kanji. **Shuffle** (`home.js`) swaps the grid for a fresh rando
 set via `GET /api/random?n=`; **Surprise me** hits `GET /random`, which redirects
 to a random kanji page.
 
-## Ads (placeholders only)
+## Ads
 
-Per the V1 scope, no ad network is integrated. `views/partials/ad.ejs` renders an
-empty, clearly-labelled reserved slot:
-
-```ejs
-<%- include('partials/ad', { slot: 'home-top', size: 'leaderboard' }) %>
-```
-
-`size` is `leaderboard` (max 728×90) or `skyscraper` (160×600). Slots:
-
-| Page | Slots |
-|---|---|
-| home | `home-left`, `home-top`, `home-foot`, `home-right` |
-| kanji | `kanji-left`, `kanji-foot`, `kanji-right` |
-| results | `results-foot` |
-
-Each has a stable `data-ad-slot` attribute. The **left/right rails** (`page-rail`
-in `partials/head.ejs` + `partials/foot.ejs`) only render on `page-home` /
-`page-kanji` and are `display:none` below 1340px viewport width; the ad inside is
-`position:sticky`. To go live, drop the ad tag / script into `ad.ejs` keyed off
-`slot`, and adjust `.ad-slot` styling in `styles.css`.
-
-The **privacy policy** (`/privacy`) already discloses that AdSense will introduce
-cookie-based tracking — update its "Advertising" section with the concrete
-details (and any regional consent banner) when ads actually go live.
+No ad network is integrated and there are no ad slots in the markup. The
+**privacy policy** (`/privacy`) still notes that AdSense *would* introduce
+cookie-based tracking if it were added later — update or drop that "Advertising"
+section depending on what you decide.
 
 ## SEO, PWA & legal pages
 
