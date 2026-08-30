@@ -1,7 +1,8 @@
 node_modules/
 data/sources/
 data/intermediate/
-data/kanji.db
+# data/kanji.db is committed — a prebuilt copy so `npm run web` works on clone
+# without re-running the (paid) origin-story pipeline. Rebuild with `npm run pipeline`.
 data/kanji.db-journal
 data/kanji.db-wal
 data/kanji.db-shm
