@@ -320,11 +320,95 @@ const GENERIC_ELEMENTS = new Set([..."一丨丶丿乀乁乚亅乙二亠八丷冂
 const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(here, "views"));
-app.use(express.static(path.join(here, "public")));
 app.locals.linkifyKanji = linkifyKanji;
+app.locals.SITE_NAME = "Kanji Decipher";
+app.locals.CONTACT_EMAIL = "p.kaouri@gmail.com";
+
+// The service worker must be revalidated on every load (so updates ship) and be
+// allowed to control the whole origin. Add those headers, then let express.static
+// serve the file itself.
+app.use("/sw.js", (req, res, next) => {
+  res.set("Cache-Control", "no-cache");
+  res.set("Service-Worker-Allowed", "/");
+  next();
+});
+
+app.use(express.static(path.join(here, "public")));
+
+// Absolute-URL helpers for canonical tags, Open Graph, sitemap, robots.
+// Prefer SITE_URL in production; otherwise derive from the request Host.
+function siteBase(req) {
+  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
+  return `${req.protocol}://${req.get("host")}`;
+}
+app.use((req, res, next) => {
+  const base = siteBase(req);
+  res.locals.siteUrl = base;
+  res.locals.canonical = base + req.path;
+  next();
+});
+
+// ---------- per-page SEO (title + meta description) ----------
+
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+/** { title, description } for a kanji detail page, built from its data. */
+function kanjiSeo(k) {
+  const primary = k.meanings[0] || "";
+  // If the primary kun reading stands alone (みず, やま) it reads best; otherwise
+  // it's tied to okurigana (明かり, 語る) so use the on reading instead (メイ, ゴ).
+  const kun0 = k.kun_readings[0] || "";
+  const reading = kun0 && !/[.\-]/.test(kun0) ? kun0 : k.on_readings[0] || kun0;
+  const romaji = reading ? wanakana.toRomaji(reading.replace(/[.\-]/g, "")) : "";
+  const paren = romaji || reading;
+  const meaningList = k.meanings.slice(0, 3).join(", ");
+  return {
+    title: `${k.literal}${primary ? ` (${cap(primary)})` : ""}`,
+    description:
+      `${k.literal}${paren ? ` (${paren})` : ""} means ${meaningList || "—"} — ` +
+      `see its origin story, stroke order, readings, and related kanji on Kanji Decipher.`,
+  };
+}
+
+const KANJI_COUNT_FMT = Number(META.kanji_count).toLocaleString("en-US");
+const PAGE_SEO = {
+  browse: {
+    title: `Browse all ${KANJI_COUNT_FMT} jōyō kanji`,
+    description:
+      "Browse and filter every jōyō kanji by grade, former JLPT level, stroke count, or formation type.",
+  },
+  radicals: {
+    title: "Radical & component search",
+    description:
+      "Find a kanji by picking its visual components. Select one or more radicals to narrow the list.",
+  },
+  credits: {
+    title: "Credits & licences",
+    description:
+      "The freely-licensed data sources behind Kanji Decipher: KanjiVG, KANJIDIC2, JMdict and KRADFILE.",
+  },
+  about: {
+    title: "About",
+    description:
+      "What Kanji Decipher is — a free lookup tool for the origins, components, readings and stroke order of the jōyō kanji — and why it exists.",
+  },
+  privacy: {
+    title: "Privacy policy",
+    description:
+      "How Kanji Decipher handles data: no accounts, no personal data collected today, and how advertising cookies will work once ads are enabled.",
+  },
+};
 
 app.get("/", (req, res) => {
   res.render("home", { meta: META, featured: featuredCards() });
+});
+
+app.get("/about", (req, res) => {
+  res.render("about", { ...PAGE_SEO.about });
+});
+
+app.get("/privacy", (req, res) => {
+  res.render("privacy", { ...PAGE_SEO.privacy });
 });
 
 // A random kanji page — the "surprise me" link.
@@ -362,7 +446,13 @@ app.get("/search", (req, res) => {
     return res.redirect(`/kanji/${encodeURIComponent(only.literal)}`);
   }
 
-  res.render("results", { search, total });
+  res.render("results", {
+    search,
+    total,
+    title: `Search: “${search.query}”`,
+    description: `Kanji related to “${search.query}” on Kanji Decipher.`,
+    noindex: true,
+  });
 });
 
 app.get("/api/search", (req, res) => {
@@ -401,9 +491,11 @@ app.get("/kanji/:char", (req, res) => {
   const char = decodeURIComponent(req.params.char);
   const kanji = lookupKanji(char);
   if (!kanji) {
-    return res.status(404).render("404", { message: `No jōyō kanji “${char}” in the database.` });
+    return res
+      .status(404)
+      .render("404", { message: `No jōyō kanji “${char}” in the database.`, title: "Not found", noindex: true });
   }
-  res.render("kanji", { kanji, meta: META });
+  res.render("kanji", { kanji, meta: META, ...kanjiSeo(kanji) });
 });
 
 // ---------- browse & radical picker ----------
@@ -460,12 +552,14 @@ app.get("/browse", (req, res) => {
     page: clampedPage,
     pages,
     query: req.query,
+    ...PAGE_SEO.browse,
+    noindex: Object.keys(req.query).length > 0,
   });
 });
 
 app.get("/radicals", (req, res) => {
   if (!HAS_DICT) {
-    return res.render("radicals", { meta: META, groups: null });
+    return res.render("radicals", { meta: META, groups: null, ...PAGE_SEO.radicals });
   }
   const rows = dictStmts.radicalsAll.all();
   const groups = [];
@@ -477,7 +571,7 @@ app.get("/radicals", (req, res) => {
     }
     cur.parts.push({ part: r.part, display: r.display || r.part, count: r.joyo_count });
   }
-  res.render("radicals", { meta: META, groups });
+  res.render("radicals", { meta: META, groups, ...PAGE_SEO.radicals });
 });
 
 app.get("/api/by-radicals", (req, res) => {
@@ -508,15 +602,43 @@ app.get("/api/by-radicals", (req, res) => {
 });
 
 app.get("/credits", (req, res) => {
-  res.render("credits", { meta: META });
+  res.render("credits", { meta: META, ...PAGE_SEO.credits });
+});
+
+// ---------- sitemap + robots ----------
+
+let sitemapCache = null;
+app.get("/sitemap.xml", (req, res) => {
+  const base = res.locals.siteUrl;
+  if (!sitemapCache || sitemapCache.base !== base) {
+    const staticPaths = ["/", "/browse", "/radicals", "/about", "/privacy", "/credits"];
+    const kanji = db.prepare("SELECT literal FROM kanji ORDER BY (freq IS NULL), freq").all();
+    const urls = [
+      ...staticPaths.map((p) => `${base}${p}`),
+      ...kanji.map((k) => `${base}/kanji/${encodeURIComponent(k.literal)}`),
+    ];
+    const xml =
+      '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n") +
+      "\n</urlset>\n";
+    sitemapCache = { base, xml };
+  }
+  res.type("application/xml").send(sitemapCache.xml);
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").send(
+    `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /search\n\nSitemap: ${res.locals.siteUrl}/sitemap.xml\n`,
+  );
 });
 
 app.use((req, res) => {
-  res.status(404).render("404", { message: "Page not found." });
+  res.status(404).render("404", { message: "Page not found.", title: "Not found", noindex: true });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Kanji Origin — http://localhost:${PORT}`);
+  console.log(`Kanji Decipher — http://localhost:${PORT}`);
   console.log(`  ${META.kanji_count} kanji · FTS5 ${FTS ? "on" : "off (LIKE fallback)"}`);
 });

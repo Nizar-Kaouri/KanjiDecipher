@@ -1,0 +1,38 @@
+<%- include('partials/head', { pageClass: 'page-legal' }) %>
+
+<article class="legal">
+  <h1>About <%= SITE_NAME %></h1>
+
+  <p>
+    <%= SITE_NAME %> is a free lookup tool for the <strong>2,136 jōyō kanji</strong> —
+    the set taught through Japanese schooling. Search any character (or an English
+    meaning, or a reading) and you get its component breakdown, its meanings and
+    on&rsquo;yomi / kun&rsquo;yomi readings, an animated stroke-order diagram,
+    common words that use it, related kanji, and a short plain-language account of
+    <em>how the shape came to carry the meaning</em>.
+  </p>
+
+  <p>
+    It exists because that last part — the origin story — is usually the hard bit
+    to find. Stroke order and readings are everywhere; a one-paragraph explanation
+    of why 明 is a sun beside a moon, or that the 青 in 清 is a sound hint rather
+    than a meaning, is not. <%= SITE_NAME %> pulls the structural data from open
+    datasets (KanjiVG, KANJIDIC2, JMdict, KRADFILE — see the
+    <a href="/credits">credits</a>) and pairs each character with a generated,
+    plain-English etymology so the whole picture sits on one page.
+  </p>
+
+  <p>
+    It&rsquo;s a reference, not a course: no accounts, no lessons, no quizzes, no
+    progress tracking. The origin explanations are machine-generated and may
+    contain errors — each kanji page notes whether its story has been
+    human-reviewed.
+  </p>
+
+  <p class="legal-meta">
+    Questions or corrections:
+    <a href="mailto:<%= CONTACT_EMAIL %>"><%= CONTACT_EMAIL %></a>.
+  </p>
+</article>
+
+<%- include('partials/foot', { pageClass: 'page-legal' }) %>

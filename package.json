@@ -1,8 +1,8 @@
 {
-  "name": "kanji-origin",
+  "name": "kanji-decipher",
   "version": "1.0.0",
   "private": true,
-  "description": "Kanji etymology lookup — search a jōyō kanji, see its components, readings, stroke order, and origin story.",
+  "description": "Kanji Decipher — search a jōyō kanji, see its components, readings, stroke order, and origin story.",
   "type": "module",
   "engines": {
     "node": ">=22.5.0"
@@ -15,6 +15,7 @@
     "pipeline:dictionary": "node pipeline/5-parse-dictionary.js",
     "pipeline": "npm run pipeline:download && npm run pipeline:kanjidic && npm run pipeline:kanjivg && npm run pipeline:build && npm run pipeline:dictionary",
     "stories": "node pipeline/4-generate-origin-stories.js",
+    "icons": "node web/gen-icons.js",
     "web": "node web/server.js",
     "start": "node web/server.js"
   },
@@ -25,5 +26,8 @@
     "fast-xml-parser": "^4.5.1",
     "wanakana": "^5.3.1",
     "yauzl": "^3.2.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.0"
   }
 }

@@ -545,8 +545,20 @@ input, select, textarea { font-size: 16px; }
 .credit dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; max-width: 40em; }
 .credit dt { color: var(--muted); }
 
-.site-footer { border-top: 1px solid var(--line); padding: 20px; text-align: center; color: var(--muted); font-size: .85rem; }
+/* about / privacy — long-form prose */
+.legal { max-width: 44em; }
+.legal h1 { margin-bottom: .4em; }
+.legal h2 { font-size: 1.05rem; margin: 1.8em 0 .4em; }
+.legal p, .legal li { line-height: 1.7; }
+.legal ul { padding-left: 1.2em; }
+.legal li { margin: .4em 0; }
+.legal-meta { color: var(--muted); font-size: .9rem; }
+
+.site-footer { border-top: 1px solid var(--line); padding: 22px 20px 30px; text-align: center; color: var(--muted); font-size: .85rem; }
 .site-footer a { color: var(--link); }
+.footer-links { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; margin-bottom: 12px; }
+.footer-links a { text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
 
 /* linkified kanji in prose */
 .kref {

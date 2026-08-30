@@ -1,4 +1,4 @@
--- Kanji Origin — database schema. Rebuilt from scratch by 3-build-db.js.
+-- Kanji Decipher — database schema. Rebuilt from scratch by 3-build-db.js.
 
 DROP TABLE IF EXISTS kanji;
 DROP TABLE IF EXISTS components;

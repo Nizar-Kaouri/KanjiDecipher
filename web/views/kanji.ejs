@@ -18,7 +18,7 @@
     </div>
 <% }
 %>
-<%- include('partials/head', { title: kanji.literal + ' — ' + kanji.meanings.slice(0,3).join(', '), pageClass: 'page-kanji' }) %>
+<%- include('partials/head', { pageClass: 'page-kanji' }) %>
 
 <article class="kanji-detail" data-literal="<%= kanji.literal %>">
 

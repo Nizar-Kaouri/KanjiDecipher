@@ -3,8 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= typeof title !== 'undefined' ? title + ' · Kanji Origin' : 'Kanji Origin' %></title>
-  <meta name="description" content="Look up any jōyō kanji: components, meanings, readings, stroke order, and a plain-language origin story.">
+<%
+  var _title = (typeof title !== 'undefined' && title)
+    ? title + ' — ' + SITE_NAME
+    : SITE_NAME + ' — jōyō kanji origins, stroke order & readings';
+  var _desc = (typeof description !== 'undefined' && description)
+    ? description
+    : "Search any of the 2,136 jōyō kanji: how it breaks into parts, what it means, how it's read, its stroke order, and a plain-language origin story.";
+%>
+  <title><%= _title %></title>
+  <meta name="description" content="<%= _desc %>">
+  <% if (typeof noindex !== 'undefined' && noindex) { %><meta name="robots" content="noindex, follow"><% } %>
+  <% if (typeof canonical !== 'undefined') { %><link rel="canonical" href="<%= canonical %>"><% } %>
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= SITE_NAME %>">
+  <meta property="og:title" content="<%= _title %>">
+  <meta property="og:description" content="<%= _desc %>">
+  <% if (typeof canonical !== 'undefined') { %><meta property="og:url" content="<%= canonical %>"><% } %>
+  <meta name="twitter:card" content="summary">
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#fbf9f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17150f" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="<%= SITE_NAME %>">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>字</text></svg>">
+
   <script>
     // Apply a saved theme before first paint (no flash).
     (function () {
@@ -15,11 +44,10 @@
     })();
   </script>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>字</text></svg>">
 </head>
 <body class="<%= typeof pageClass !== 'undefined' ? pageClass : '' %>">
 <header class="site-header">
-  <a class="brand" href="/">字 <span>Kanji Origin</span></a>
+  <a class="brand" href="/">字 <span><%= SITE_NAME %></span></a>
   <nav class="site-nav">
     <a href="/browse">Browse</a>
     <a href="/radicals">Radicals</a>

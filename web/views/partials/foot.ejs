@@ -11,11 +11,24 @@
   <% } %>
 </div>
 <footer class="site-footer">
+  <nav class="footer-links">
+    <a href="/about">About</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/credits">Credits</a>
+    <a href="mailto:<%= CONTACT_EMAIL %>">Contact</a>
+  </nav>
   <p>
-    Data: <a href="/credits">KanjiVG, KANJIDIC2, JMdict, KRADFILE</a> (CC BY-SA).
+    Data from <a href="/credits">KanjiVG, KANJIDIC2, JMdict &amp; KRADFILE</a> (CC BY-SA).
     Origin stories are AI-generated and may contain errors.
   </p>
 </footer>
+<script>
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+  }
+</script>
 <script src="/theme.js" defer></script>
 <script src="/suggest.js" defer></script>
 <% if (typeof pageClass !== 'undefined' && pageClass === 'page-kanji') { %>

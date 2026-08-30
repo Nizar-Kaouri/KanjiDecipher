@@ -1,4 +1,4 @@
-# Kanji Origin
+# Kanji Decipher
 
 A lookup site for kanji etymology. Search any of the ~2,136 jōyō kanji and see:
 
@@ -106,10 +106,11 @@ pipeline/
   lib/                    db, kana, formation heuristic, SVG builder, unzip, radicals
 web/
   server.js               Express + node:sqlite (read-only), EJS views
-  views/                  home, results, kanji detail, browse, radicals, credits, 404
-  public/                 styles.css, theme.js, suggest.js, home.js,
-                          radicals.js (picker), stroke-anim.js
+  gen-icons.js            one-off: build the PWA / touch icons  (npm run icons)
+  views/                  home, results, kanji, browse, radicals, credits, about, privacy, 404
   views/partials/         head, foot, ad (placeholder slot)
+  public/                 styles.css, theme.js, suggest.js, home.js, radicals.js,
+                          stroke-anim.js, sw.js, manifest.webmanifest, icons/
 ```
 
 ### Database (`data/kanji.db`)
@@ -191,6 +192,28 @@ in `partials/head.ejs` + `partials/foot.ejs`) only render on `page-home` /
 `page-kanji` and are `display:none` below 1340px viewport width; the ad inside is
 `position:sticky`. To go live, drop the ad tag / script into `ad.ejs` keyed off
 `slot`, and adjust `.ad-slot` styling in `styles.css`.
+
+The **privacy policy** (`/privacy`) already discloses that AdSense will introduce
+cookie-based tracking — update its "Advertising" section with the concrete
+details (and any regional consent banner) when ads actually go live.
+
+## SEO, PWA & legal pages
+
+- **`/about`, `/privacy`** — static pages; footer links (About / Privacy /
+  Credits / Contact) are in `partials/foot.ejs` on every page. Contact is a
+  `mailto:` (`app.locals.CONTACT_EMAIL` in `server.js`).
+- **Per-page `<title>` / `<meta description>`** — routes pass `title` /
+  `description` (kanji pages via `kanjiSeo()`, static pages via `PAGE_SEO`);
+  `partials/head.ejs` renders them plus `canonical`, Open Graph, and `noindex`
+  for search-result / filtered-browse pages.
+- **`/sitemap.xml`** — generated from the DB (all 2,136 kanji + the static
+  routes), cached in memory. **`/robots.txt`** points to it. Both build absolute
+  URLs from `SITE_URL` (set it in production) or the request `Host` header.
+- **PWA** — `manifest.webmanifest` + `sw.js` (served with `Cache-Control:
+  no-cache`). The service worker precaches the shell, serves static assets
+  cache-first, and pages network-first with a cache fallback, so any kanji page
+  you've opened works offline. Icons: `npm run icons` regenerates
+  `web/public/icons/*` from `web/gen-icons.js` (needs the `sharp` devDependency).
 
 ## Deployment
 

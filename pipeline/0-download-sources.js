@@ -68,7 +68,7 @@ async function resolveKanjiVgAssetUrl() {
   const res = await fetch(KANJIVG_RELEASES_API, {
     headers: {
       Accept: "application/vnd.github+json",
-      "User-Agent": "kanji-origin-pipeline",
+      "User-Agent": "kanji-decipher-pipeline",
     },
   });
   if (!res.ok) {
@@ -95,7 +95,7 @@ async function resolveJmdictSimplifiedAssets() {
   const res = await fetch(JMDICT_SIMPLIFIED_API, {
     headers: {
       Accept: "application/vnd.github+json",
-      "User-Agent": "kanji-origin-pipeline",
+      "User-Agent": "kanji-decipher-pipeline",
     },
   });
   if (!res.ok) {
@@ -130,14 +130,14 @@ async function main() {
   if (!skip(SOURCE_FILES.kanjivg)) {
     const url = await resolveKanjiVgAssetUrl();
     await downloadTo(SOURCE_FILES.kanjivg, url, {
-      headers: { "User-Agent": "kanji-origin-pipeline" },
+      headers: { "User-Agent": "kanji-decipher-pipeline" },
     });
   }
 
   console.log("\nKANJIDIC2 (meanings + readings + stroke counts)");
   if (!skip(SOURCE_FILES.kanjidic2)) {
     await tryUrls(SOURCE_FILES.kanjidic2, KANJIDIC2_URLS, {
-      headers: { "User-Agent": "kanji-origin-pipeline" },
+      headers: { "User-Agent": "kanji-decipher-pipeline" },
     });
   }
 
@@ -153,7 +153,7 @@ async function main() {
       if (skip(SOURCE_FILES[key])) continue;
       process.stdout.write(`  ${name}\n`);
       await downloadTo(SOURCE_FILES[key], url, {
-        headers: { "User-Agent": "kanji-origin-pipeline" },
+        headers: { "User-Agent": "kanji-decipher-pipeline" },
       });
     }
   } else {
