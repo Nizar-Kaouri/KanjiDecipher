@@ -125,13 +125,16 @@ web/
 
 ### Search
 
-One box, no type switch. `/search?q=` runs all three lookups on the query and
-shows every non-empty section:
+One box, no type switch. `/search?q=` runs every lookup on the query and shows
+each non-empty section:
 
+- **Words** — multi-character jukugo whose *exact* kana reading matches the query
+  (kana, or romaji via WanaKana); links to `/word/`. `会社` / `かいしゃ` / `kaisha`
+  all find 会社.
 - **Kanji you typed** — any kanji characters in the query, looked up directly.
 - **By meaning** — FTS5 over English glosses (LIKE fallback).
-- **Read as “…”** — the query as kana, or as romaji converted to kana server-side
-  (WanaKana); matched exact-first, then by prefix, against the reverse reading index.
+- **Read as “…”** — the query as kana / romaji, matched exact-first then by
+  prefix against the reverse single-kanji reading index.
 
 A query that is a single kanji character, or that resolves to exactly one kanji
 overall, redirects straight to that kanji's page.
@@ -144,10 +147,13 @@ compact cards linking to each kanji's page. Non-dictionary combinations still ge
 the breakdown but are `noindex` and kept out of the sitemap. The "Common words"
 list on each kanji page links to these `/word/` pages.
 
+A query that resolves to exactly one hit redirects straight to it — `/kanji/<c>`
+for a single kanji, `/word/<w>` for a single word (e.g. `benkyou` → `/word/勉強`).
+
 As you type, `suggest.js` debounces a call to `GET /api/suggest?q=` (a short,
-flat, ranked list — kanji you typed, then meanings for text queries or readings
-for kana/romaji queries) and shows a keyboard-navigable dropdown. `GET
-/api/search?q=` returns the full `unifiedSearch` result as JSON.
+flat, ranked list; each item carries an `href` so word and kanji hits mix) and
+shows a keyboard-navigable dropdown. `GET /api/search?q=` returns the full
+`unifiedSearch` result as JSON.
 
 ### Browse & radicals
 

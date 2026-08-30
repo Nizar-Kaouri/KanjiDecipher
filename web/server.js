@@ -91,6 +91,13 @@ const dictStmts = HAS_DICT
         "SELECT DISTINCT reading, gloss FROM example_words WHERE word = ? ORDER BY reading",
       ),
       wordExists: db.prepare("SELECT 1 FROM example_words WHERE word = ? LIMIT 1"),
+      // Find words by their exact kana reading (for kana / romaji searches).
+      // Single-character "words" are skipped — they're just kanji, already
+      // covered by the reading index.
+      wordsByReading: db.prepare(`
+        SELECT word, gloss, MIN(priority) AS priority
+        FROM example_words WHERE reading = ? AND length(word) >= 2
+        GROUP BY word ORDER BY priority, length(word) LIMIT 20`),
     }
   : null;
 
@@ -241,16 +248,26 @@ function unifiedSearch(q) {
     const converted = wanakana.toKana(raw.toLowerCase(), { IMEMode: false });
     if (wanakana.isKana(converted)) kana = converted;
   }
+  let words = [];
   if (kana) {
     const r = searchReading(kana);
     readingKana = r.kana;
     reading = r.results;
+    words = searchWordsByReading(readingKana || kana);
   }
 
   meaning = meaning.filter((c) => !directSet.has(c.literal));
   reading = reading.filter((c) => !directSet.has(c.literal));
 
-  return { query: raw, direct, meaning, reading, readingKana };
+  return { query: raw, direct, meaning, reading, words, readingKana };
+}
+
+/** Multi-character words (jukugo) whose exact kana reading matches the query. */
+function searchWordsByReading(kana) {
+  if (!dictStmts) return [];
+  const norm = (kana || "").trim();
+  if (!norm) return [];
+  return dictStmts.wordsByReading.all(norm).map((r) => ({ word: r.word, gloss: r.gloss }));
 }
 
 /**
@@ -498,10 +515,14 @@ app.get("/search", (req, res) => {
   if (wordPath) return res.redirect(wordPath);
 
   const search = unifiedSearch(q);
-  const total = search.direct.length + search.meaning.length + search.reading.length;
+  const kanjiTotal = search.direct.length + search.meaning.length + search.reading.length;
+  const total = kanjiTotal + search.words.length;
 
-  // Exactly one kanji anywhere in the results: jump to it.
-  if (total === 1) {
+  // Exactly one hit overall: jump straight to it.
+  if (total === 1 && search.words.length === 1) {
+    return res.redirect(`/word/${encodeURIComponent(search.words[0].word)}`);
+  }
+  if (total === 1 && kanjiTotal === 1) {
     const only = search.direct[0] || search.meaning[0] || search.reading[0];
     return res.redirect(`/kanji/${encodeURIComponent(only.literal)}`);
   }
@@ -517,7 +538,8 @@ app.get("/search", (req, res) => {
 
 app.get("/api/search", (req, res) => {
   const q = (req.query.q ?? "").toString();
-  if (!q.trim()) return res.json({ query: "", direct: [], meaning: [], reading: [], readingKana: null });
+  if (!q.trim())
+    return res.json({ query: "", direct: [], meaning: [], reading: [], words: [], readingKana: null });
   res.json(unifiedSearch(q));
 });
 
@@ -530,18 +552,22 @@ app.get("/api/suggest", (req, res) => {
   const s = unifiedSearch(q);
   const items = [];
   const seen = new Set();
-  const add = (r, reason) => {
-    if (!r || seen.has(r.literal) || items.length >= 8) return;
-    seen.add(r.literal);
-    items.push({ literal: r.literal, meaning: r.meaning, reason });
+  const add = (it) => {
+    const href = it.href || `/kanji/${encodeURIComponent(it.literal)}`;
+    if (seen.has(href) || items.length >= 8) return;
+    seen.add(href);
+    items.push({ literal: it.literal, meaning: it.meaning, reason: it.reason, href });
   };
 
-  s.direct.forEach((r) => add(r, "you typed this"));
+  s.direct.forEach((r) => add({ ...r, reason: "you typed this" }));
   if (s.readingKana) {
-    // Kana / romaji query: readings are the intent; skip fuzzy meaning-prefix hits.
-    s.reading.forEach((r) => add(r, `read ${s.readingKana}`));
+    // Kana / romaji query: whole words and single-kanji readings are the intent.
+    s.words.forEach((w) =>
+      add({ literal: w.word, meaning: w.gloss, reason: `read ${s.readingKana}`, href: `/word/${encodeURIComponent(w.word)}` }),
+    );
+    s.reading.forEach((r) => add({ ...r, reason: `read ${s.readingKana}` }));
   } else {
-    s.meaning.forEach((r) => add(r, "meaning"));
+    s.meaning.forEach((r) => add({ ...r, reason: "meaning" }));
   }
 
   res.json({ q, kana: s.readingKana, items });

@@ -22,6 +22,22 @@
   </p>
 <% } %>
 
+<% if (search.words && search.words.length) { %>
+  <section class="result-section">
+    <h2>Words</h2>
+    <ul class="result-grid">
+      <% search.words.forEach(function (w) { %>
+        <li>
+          <a href="/word/<%= encodeURIComponent(w.word) %>">
+            <span class="glyph" lang="ja"><%= w.word %></span>
+            <span class="gloss"><%= w.gloss %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>
+
 <% if (search.direct.length) { %>
   <section class="result-section">
     <h2>Kanji you typed</h2>

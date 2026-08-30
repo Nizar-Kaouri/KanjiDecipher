@@ -55,8 +55,8 @@
             box.id +
             "-" +
             i +
-            '" href="/kanji/' +
-            encodeURIComponent(it.literal) +
+            '" href="' +
+            esc(it.href || "/kanji/" + encodeURIComponent(it.literal)) +
             '">' +
             '<span class="s-glyph">' +
             esc(it.literal) +
@@ -132,7 +132,8 @@
       } else if (e.key === "Enter") {
         if (active >= 0 && items[active]) {
           e.preventDefault();
-          window.location.href = "/kanji/" + encodeURIComponent(items[active].literal);
+          window.location.href =
+            items[active].href || "/kanji/" + encodeURIComponent(items[active].literal);
         }
       } else if (e.key === "Escape") {
         close();
