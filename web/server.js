@@ -86,6 +86,11 @@ const dictStmts = HAS_DICT
       radicalsAll: db.prepare(
         "SELECT part, display, strokes, joyo_count FROM radicals ORDER BY strokes, joyo_count DESC",
       ),
+      // Whole-word lookup (a word appears once per constituent kanji, so DISTINCT).
+      wordEntries: db.prepare(
+        "SELECT DISTINCT reading, gloss FROM example_words WHERE word = ? ORDER BY reading",
+      ),
+      wordExists: db.prepare("SELECT 1 FROM example_words WHERE word = ? LIMIT 1"),
     }
   : null;
 
@@ -134,6 +139,26 @@ function parseKanjiRow(row) {
     kun_readings: JSON.parse(row.kun_readings),
     nanori: JSON.parse(row.nanori),
     formation_label: FORMATION_LABELS[row.formation_type] ?? row.formation_type,
+  };
+}
+
+/** The reading to show for a kanji in compact contexts (cards, SEO). */
+function primaryReading(k) {
+  // A clean, standalone kun reading (みず, やま) reads best; if the first kun is
+  // tied to okurigana (明かり, 語る) fall back to the on reading (メイ, ゴ).
+  const kun0 = k.kun_readings[0] || "";
+  if (kun0 && !/[.\-]/.test(kun0)) return kun0;
+  return k.on_readings[0] || kun0 || "";
+}
+
+/** Compact card data for one kanji — used in the word-breakdown view. */
+function kanjiCard(literal) {
+  const row = parseKanjiRow(stmts.kanji.get(literal));
+  if (!row) return null;
+  return {
+    literal: row.literal,
+    meaning: row.meanings.slice(0, 3).join(", "),
+    reading: primaryReading(row),
   };
 }
 
@@ -355,10 +380,7 @@ const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 /** { title, description } for a kanji detail page, built from its data. */
 function kanjiSeo(k) {
   const primary = k.meanings[0] || "";
-  // If the primary kun reading stands alone (みず, やま) it reads best; otherwise
-  // it's tied to okurigana (明かり, 語る) so use the on reading instead (メイ, ゴ).
-  const kun0 = k.kun_readings[0] || "";
-  const reading = kun0 && !/[.\-]/.test(kun0) ? kun0 : k.on_readings[0] || kun0;
+  const reading = primaryReading(k);
   const romaji = reading ? wanakana.toRomaji(reading.replace(/[.\-]/g, "")) : "";
   const paren = romaji || reading;
   const meaningList = k.meanings.slice(0, 3).join(", ");
@@ -367,6 +389,22 @@ function kanjiSeo(k) {
     description:
       `${k.literal}${paren ? ` (${paren})` : ""} means ${meaningList || "—"} — ` +
       `see its origin story, stroke order, readings, and related kanji on Kanji Decipher.`,
+  };
+}
+
+/** { title, description } for a /word/ page. `entry` = the dictionary hit or null. */
+function wordSeo(word, entry, parts) {
+  const reading = entry?.reading || "";
+  const romaji = reading ? wanakana.toRomaji(reading) : "";
+  const paren = romaji || reading;
+  const list = parts.length === 2 ? parts.join(" and ") : parts.join(", ");
+  return {
+    title: `${word}${paren ? ` (${paren})` : ""}`,
+    description: entry
+      ? `${word}${paren ? ` (${paren})` : ""} means ${entry.gloss || "—"} — ` +
+        `see how it breaks down into ${list || "its characters"} on Kanji Decipher.`
+      : `“${word}” isn't a dictionary entry, but here's what each of its characters ` +
+        `(${parts.join(", ") || "—"}) means, with stroke order and origins on Kanji Decipher.`,
   };
 }
 
@@ -432,9 +470,22 @@ app.get("/search", (req, res) => {
   const q = (req.query.q ?? "").toString();
   if (!q.trim()) return res.redirect("/");
 
+  const t = q.trim();
+
   // A single kanji character: go straight to its page.
-  if ([...q.trim()].length === 1 && wanakana.isKanji(q.trim())) {
-    return res.redirect(`/kanji/${encodeURIComponent(q.trim())}`);
+  if ([...t].length === 1 && wanakana.isKanji(t)) {
+    return res.redirect(`/kanji/${encodeURIComponent(t)}`);
+  }
+
+  // A run of 2+ kanji (no kana, no romaji, no English): try it as a whole word.
+  // Redirect to the word page if it's a real dictionary headword, or — failing
+  // that — if every character is a jōyō kanji we can at least break down.
+  const tChars = [...t];
+  if (tChars.length >= 2 && tChars.every((c) => wanakana.isKanji(c))) {
+    const isWord = !!(dictStmts && dictStmts.wordExists.get(t));
+    if (isWord || tChars.every((c) => KANJI_SET.has(c))) {
+      return res.redirect(`/word/${encodeURIComponent(t)}`);
+    }
   }
 
   const search = unifiedSearch(q);
@@ -496,6 +547,56 @@ app.get("/kanji/:char", (req, res) => {
       .render("404", { message: `No jōyō kanji “${char}” in the database.`, title: "Not found", noindex: true });
   }
   res.render("kanji", { kanji, meta: META, ...kanjiSeo(kanji) });
+});
+
+// ---------- whole-word lookup ----------
+
+app.get("/word/:word", (req, res) => {
+  const word = decodeURIComponent(req.params.word).trim();
+  const chars = [...word];
+
+  if (!word) return res.redirect("/");
+
+  // A bare single kanji belongs on the kanji page.
+  if (chars.length === 1 && KANJI_SET.has(word)) {
+    return res.redirect(`/kanji/${encodeURIComponent(word)}`);
+  }
+
+  const entries = dictStmts ? dictStmts.wordEntries.all(word) : [];
+  const isExact = entries.length > 0;
+
+  const kanjiChars = chars.filter((c) => wanakana.isKanji(c));
+  const isJoyoRun = kanjiChars.length >= 2 && chars.every((c) => KANJI_SET.has(c));
+
+  if (!isExact && !isJoyoRun) {
+    return res.status(404).render("404", {
+      message: `“${word}” isn't a dictionary word, and it isn't a run of jōyō kanji to break down.`,
+      title: "Not found",
+      noindex: true,
+    });
+  }
+
+  // One breakdown card per kanji character, in order, de-duplicated.
+  const seen = new Set();
+  const breakdown = [];
+  for (const c of kanjiChars) {
+    if (seen.has(c)) continue;
+    seen.add(c);
+    const card = kanjiCard(c);
+    if (card) breakdown.push(card);
+  }
+
+  const parts = breakdown.map((b) => b.literal);
+  res.render("word", {
+    word,
+    entries,
+    isExact,
+    breakdown,
+    meta: META,
+    ...wordSeo(word, entries[0] || null, parts),
+    // Don't invite crawlers to index unverified kanji combinations.
+    noindex: !isExact,
+  });
 });
 
 // ---------- browse & radical picker ----------
@@ -613,9 +714,14 @@ app.get("/sitemap.xml", (req, res) => {
   if (!sitemapCache || sitemapCache.base !== base) {
     const staticPaths = ["/", "/browse", "/radicals", "/about", "/privacy", "/credits"];
     const kanji = db.prepare("SELECT literal FROM kanji ORDER BY (freq IS NULL), freq").all();
+    // Only real dictionary headwords — skip unverified kanji combinations.
+    const words = HAS_DICT
+      ? db.prepare("SELECT DISTINCT word FROM example_words ORDER BY word").all()
+      : [];
     const urls = [
       ...staticPaths.map((p) => `${base}${p}`),
       ...kanji.map((k) => `${base}/kanji/${encodeURIComponent(k.literal)}`),
+      ...words.map((w) => `${base}/word/${encodeURIComponent(w.word)}`),
     ];
     const xml =
       '<?xml version="1.0" encoding="UTF-8"?>\n' +

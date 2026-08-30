@@ -107,8 +107,8 @@ pipeline/
 web/
   server.js               Express + node:sqlite (read-only), EJS views
   gen-icons.js            one-off: build the PWA / touch icons  (npm run icons)
-  views/                  home, results, kanji, browse, radicals, credits, about, privacy, 404
-  views/partials/         head, foot
+  views/                  home, results, kanji, word, browse, radicals, credits, about, privacy, 404
+  views/partials/         head, foot, kanji-chip
   public/                 styles.css, theme.js, suggest.js, home.js, radicals.js,
                           stroke-anim.js, sw.js, manifest.webmanifest, icons/
 ```
@@ -135,6 +135,14 @@ shows every non-empty section:
 
 A query that is a single kanji character, or that resolves to exactly one kanji
 overall, redirects straight to that kanji's page.
+
+A query that is a run of **2+ kanji** (no kana, no romaji, no English) is treated
+as a whole word: if it's a JMdict headword (`example_words`), or failing that a
+sequence of jōyō kanji, it redirects to **`/word/<word>`** — the word large with
+its reading/gloss (when it's a real entry) plus a per-character breakdown of
+compact cards linking to each kanji's page. Non-dictionary combinations still get
+the breakdown but are `noindex` and kept out of the sitemap. The "Common words"
+list on each kanji page links to these `/word/` pages.
 
 As you type, `suggest.js` debounces a call to `GET /api/suggest?q=` (a short,
 flat, ranked list — kanji you typed, then meanings for text queries or readings
@@ -186,9 +194,10 @@ section depending on what you decide.
   `description` (kanji pages via `kanjiSeo()`, static pages via `PAGE_SEO`);
   `partials/head.ejs` renders them plus `canonical`, Open Graph, and `noindex`
   for search-result / filtered-browse pages.
-- **`/sitemap.xml`** — generated from the DB (all 2,136 kanji + the static
-  routes), cached in memory. **`/robots.txt`** points to it. Both build absolute
-  URLs from `SITE_URL` (set it in production) or the request `Host` header.
+- **`/sitemap.xml`** — generated from the DB (all 2,136 kanji, every JMdict
+  headword as a `/word/` URL, and the static routes), cached in memory.
+  **`/robots.txt`** points to it. Both build absolute URLs from `SITE_URL` (set it
+  in production) or the request `Host` header.
 - **PWA** — `manifest.webmanifest` + `sw.js` (served with `Cache-Control:
   no-cache`). The service worker precaches the shell, serves static assets
   cache-first, and pages network-first with a cache fallback, so any kanji page

@@ -1,0 +1,9 @@
+<%
+  /* One compact kanji card: glyph + optional reading + gloss, linking to the
+     kanji's detail page. `k` = { literal, meaning, reading? }. Used by the
+     related-kanji rails on the detail page and the word-breakdown page. */
+%><li><a class="kanji-chip" href="/kanji/<%= encodeURIComponent(k.literal) %>">
+  <span class="kc-glyph"><%= k.literal %></span>
+  <% if (k.reading) { %><span class="kc-reading kana"><%= k.reading %></span><% } %>
+  <span class="kc-gloss"><%= k.meaning %></span>
+</a></li>

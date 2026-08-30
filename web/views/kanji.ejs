@@ -8,12 +8,7 @@
     <div class="related-row">
       <span class="related-label"><%= label %></span>
       <ul class="kanji-chips">
-        <% items.forEach(function (k) { %>
-          <li><a href="/kanji/<%= encodeURIComponent(k.literal) %>">
-            <span class="kc-glyph"><%= k.literal %></span>
-            <span class="kc-gloss"><%= k.meaning %></span>
-          </a></li>
-        <% }) %>
+        <% items.forEach(function (k) { %><%- include('partials/kanji-chip', { k: k }) %><% }) %>
       </ul>
     </div>
 <% }
@@ -112,7 +107,7 @@
       <ul class="word-list">
         <% kanji.exampleWords.forEach(function (w) { %>
           <li>
-            <span class="wl-word"><%- linkifyKanji(w.word) %></span>
+            <a class="wl-word" href="/word/<%= encodeURIComponent(w.word) %>" lang="ja"><%= w.word %></a>
             <span class="wl-reading kana"><%= w.reading %></span>
             <span class="wl-gloss"><%= w.gloss %></span>
           </li>

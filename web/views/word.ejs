@@ -1,0 +1,39 @@
+<%- include('partials/head', { pageClass: 'page-word' }) %>
+
+<article class="word-detail">
+
+  <header class="wd-head">
+    <h1 class="wd-word" lang="ja"><%= word %></h1>
+
+    <% if (isExact) { %>
+      <div class="wd-readings">
+        <% entries.forEach(function (e) { %>
+          <p class="wd-entry">
+            <span class="wd-reading kana"><%= e.reading %></span>
+            <span class="wd-gloss"><%= e.gloss %></span>
+          </p>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="wd-note note">
+        This exact combination isn&rsquo;t in the dictionary — here&rsquo;s what each of its
+        characters means.
+      </p>
+    <% } %>
+  </header>
+
+  <% if (breakdown.length) { %>
+    <section class="kd-block wd-breakdown-block">
+      <h2><%= isExact ? 'Breakdown' : 'What each character means' %></h2>
+      <ul class="kanji-chips wd-breakdown">
+        <% breakdown.forEach(function (k) { %><%- include('partials/kanji-chip', { k: k }) %><% }) %>
+      </ul>
+      <p class="wd-hint muted">
+        Each character links to its full entry — origin story, stroke order, and readings.
+      </p>
+    </section>
+  <% } %>
+
+</article>
+
+<%- include('partials/foot', { pageClass: 'page-word' }) %>

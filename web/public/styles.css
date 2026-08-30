@@ -550,9 +550,27 @@ input, select, textarea { font-size: 16px; }
   border-bottom: 1px solid var(--line);
 }
 .word-list li:last-child { border-bottom: 0; }
-.wl-word { font-size: 1.15rem; }
+.wl-word { font-size: 1.15rem; color: var(--text); text-decoration: none; border-bottom: 1px solid transparent; }
+.wl-word:hover { border-bottom-color: var(--accent); }
 .wl-reading { color: var(--muted); font-size: .95rem; }
 .wl-gloss { color: var(--muted); font-size: .9rem; }
+
+/* word detail (/word/:word) */
+.word-detail { max-width: 760px; }
+.wd-head { margin-bottom: 8px; }
+.wd-word { font-size: clamp(2.6rem, 12vw, 4rem); line-height: 1.05; margin: 0; }
+.wd-readings { margin-top: 10px; display: grid; gap: 4px; }
+.wd-entry { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.wd-reading { font-size: 1.15rem; }
+.wd-gloss { color: var(--muted); }
+.wd-note { margin-top: 14px; }
+ul.wd-breakdown { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 4px 0 0; }
+ul.wd-breakdown > li { min-width: 0; }
+.wd-breakdown .kanji-chip { width: 100%; max-width: none; min-width: 0; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; }
+.wd-breakdown .kc-glyph { font-size: 2.6rem; }
+.wd-breakdown .kc-reading { color: var(--muted); font-size: .9rem; }
+.wd-breakdown .kc-gloss { white-space: normal; line-height: 1.4; }
+.wd-hint { font-size: .85rem; margin-top: 12px; }
 
 /* related kanji rails */
 .related-row { margin: 14px 0; }
