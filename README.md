@@ -1,0 +1,199 @@
+# Kanji Origin
+
+A lookup site for kanji etymology. Search any of the ~2,136 jōyō kanji and see:
+
+- how it breaks into visual components / radicals (with phonetic parts flagged as
+  **sound hints**, not meaning hints)
+- its meanings and on'yomi / kun'yomi readings
+- an animated stroke-order diagram
+- a short, plain-language account of how the shape came to carry the meaning
+- common words that use it, and related kanji (same sound component / radical)
+
+Plus `/browse` (filter by grade, JLPT, strokes, formation type) and `/radicals`
+(a component picker). It's a reference tool — no lessons, quizzes, or accounts.
+
+## Requirements
+
+- Node.js **≥ 22.5** (uses the built-in `node:sqlite` — no native build step).
+  Developed on Node 24.
+
+## Quick start
+
+```bash
+npm install
+npm run pipeline     # download sources + build data/kanji.db  (~1 min, one-off)
+npm run web          # http://localhost:3000
+```
+
+`npm run pipeline` runs five steps; you can also run them individually:
+
+| Step | Command | Output |
+|---|---|---|
+| 0 | `npm run pipeline:download` | `data/sources/*` |
+| 1 | `npm run pipeline:kanjidic` | `data/intermediate/kanjidic2.json` |
+| 2 | `npm run pipeline:kanjivg` | `data/intermediate/kanjivg.json` |
+| 3 | `npm run pipeline:build` | `data/kanji.db` |
+| 5 | `npm run pipeline:dictionary` | `example_words`, `kanji_parts`, `radicals` (see below) |
+
+(Step 4, the origin-story batch, is manual — see below.) The pipeline only needs
+to run once (re-run if the upstream data updates). `data/` is git-ignored and
+fully regenerable.
+
+## Origin stories (separate, costs API credit)
+
+Story generation is **not** part of `npm run pipeline`. It calls the Claude API
+(Haiku) once per kanji — roughly **US$2–3** for the full set — and the output is
+stored **unreviewed** (`origin_story_reviewed = 0`). Spot-check before trusting it.
+
+```bash
+# see the prompt + a cost estimate, make no API calls:
+node pipeline/4-generate-origin-stories.js --dry-run --only 水,清
+
+# generate for a handful:
+node pipeline/4-generate-origin-stories.js --only 水,木,人,清,明
+
+# generate for everything still missing a story:
+node pipeline/4-generate-origin-stories.js
+
+# other flags: --limit N   --concurrency N   --force   --model <id>
+```
+
+API key resolution: `ANTHROPIC_API_KEY` if set, otherwise
+`../arbitrage-bot/api_key.txt`.
+
+Five kanji (水 木 人 山 火) ship with short **hand-written** origin summaries
+(`pipeline/lib/seed-stories.js`, marked `origin_story_model = 'manual-seed'`) so
+the detail page is demoable before the batch runs. Every other kanji shows a
+"no origin story yet" placeholder until you generate one.
+
+`3-build-db.js` carries existing generated stories (and the dictionary tables
+below) forward across a rebuild, so re-running the pipeline does not wipe the
+Claude output.
+
+## Dictionary enrichment (`pipeline:dictionary`)
+
+`5-parse-dictionary.js` adds three tables from JMdict + KRADFILE/RADKFILE (pulled
+as JSON from [jmdict-simplified](https://github.com/scriptin/jmdict-simplified),
+all CC BY-SA):
+
+- `example_words` — up to ~10 common words per kanji (word, reading, gloss)
+- `kanji_parts` — flat kanji → visible components (radical-picker index)
+- `radicals` — the ~240 picker components with stroke counts
+
+It's part of `npm run pipeline` and re-runnable on its own
+(`npm run pipeline:dictionary`). The site **degrades gracefully** without it:
+`HAS_DICT` is detected at boot; Common-words and the radical picker disappear,
+`/browse` and the same-phonetic / same-radical rails keep working.
+
+## How it works
+
+```
+pipeline/
+  0-download-sources.js   KanjiVG + KANJIDIC2 + JMdict / KRADFILE / RADKFILE
+  1-parse-kanjidic2.js    meanings, readings, stroke counts; jōyō filter (grade 1–8)
+  2-parse-kanjivg.js      stroke paths + component tree; builds self-contained SVGs
+  3-build-db.js           merges into data/kanji.db; reverse reading index; FTS5
+  4-generate-origin-stories.js   Claude Haiku batch (run manually)
+  5-parse-dictionary.js   example words, kanji_parts, radicals (JMdict / KRAD / RADK)
+  schema.sql              table definitions
+  lib/                    db, kana, formation heuristic, SVG builder, unzip, radicals
+web/
+  server.js               Express + node:sqlite (read-only), EJS views
+  views/                  home, results, kanji detail, browse, radicals, credits, 404
+  public/                 styles.css, theme.js, suggest.js, home.js,
+                          radicals.js (picker), stroke-anim.js
+  views/partials/         head, foot, ad (placeholder slot)
+```
+
+### Database (`data/kanji.db`)
+
+- `kanji` — one row per jōyō kanji (meanings/readings as JSON, stroke SVGs,
+  formation type, origin story + review flag)
+- `components` — component/radical decomposition, with `is_phonetic`
+- `readings` — reverse index: normalised kana (hiragana, markers stripped) → kanji
+- `kanji_meanings` + `meanings_fts` — English meaning search (FTS5, LIKE fallback)
+- `example_words`, `kanji_parts`, `radicals` — dictionary enrichment (see above)
+- `meta` — source versions, counts, build timestamp
+
+### Search
+
+One box, no type switch. `/search?q=` runs all three lookups on the query and
+shows every non-empty section:
+
+- **Kanji you typed** — any kanji characters in the query, looked up directly.
+- **By meaning** — FTS5 over English glosses (LIKE fallback).
+- **Read as “…”** — the query as kana, or as romaji converted to kana server-side
+  (WanaKana); matched exact-first, then by prefix, against the reverse reading index.
+
+A query that is a single kanji character, or that resolves to exactly one kanji
+overall, redirects straight to that kanji's page.
+
+As you type, `suggest.js` debounces a call to `GET /api/suggest?q=` (a short,
+flat, ranked list — kanji you typed, then meanings for text queries or readings
+for kana/romaji queries) and shows a keyboard-navigable dropdown. `GET
+/api/search?q=` returns the full `unifiedSearch` result as JSON.
+
+### Browse & radicals
+
+- `GET /browse` — filter the jōyō set by grade / JLPT / stroke count / formation
+  type, sort by frequency / strokes / radical, 60 per page.
+- `GET /radicals` — component picker; `radicals.js` calls
+  `GET /api/by-radicals?parts=一,口` (kanji containing **all** the given parts).
+
+### Related kanji (detail page)
+
+Each kanji page shows up to three rails: **same sound component** (the phonetic
+series, e.g. 青 → 清 晴 請 精 情), **same Kangxi radical**, and **shares
+components**. Kanji named in the origin story are auto-linked (`linkifyKanji`).
+
+## Formation type
+
+KANJIDIC2 doesn't record how a character was formed, so `formation_type` is a
+**heuristic** from the KanjiVG decomposition (`formation_type_source = 'heuristic'`):
+a phonetic component ⇒ phono-semantic; 2+ meaning components ⇒ compound-ideographic;
+single/indivisible ⇒ pictographic-or-simple. The origin-story prompt is told the
+classification is a guess.
+
+## Home page
+
+The landing page (`views/home.ejs`) has a drifting-kanji hero (pure CSS, disabled
+under `prefers-reduced-motion`), its own prominent search box, and an "explore"
+grid of featured kanji. **Shuffle** (`home.js`) swaps the grid for a fresh random
+set via `GET /api/random?n=`; **Surprise me** hits `GET /random`, which redirects
+to a random kanji page.
+
+## Ads (placeholders only)
+
+Per the V1 scope, no ad network is integrated. `views/partials/ad.ejs` renders an
+empty, clearly-labelled reserved slot:
+
+```ejs
+<%- include('partials/ad', { slot: 'home-top', size: 'leaderboard' }) %>
+```
+
+`size` is `leaderboard` (max 728×90) or `skyscraper` (160×600). Slots:
+
+| Page | Slots |
+|---|---|
+| home | `home-left`, `home-top`, `home-foot`, `home-right` |
+| kanji | `kanji-left`, `kanji-foot`, `kanji-right` |
+| results | `results-foot` |
+
+Each has a stable `data-ad-slot` attribute. The **left/right rails** (`page-rail`
+in `partials/head.ejs` + `partials/foot.ejs`) only render on `page-home` /
+`page-kanji` and are `display:none` below 1340px viewport width; the ad inside is
+`position:sticky`. To go live, drop the ad tag / script into `ad.ejs` keyed off
+`slot`, and adjust `.ad-slot` styling in `styles.css`.
+
+## Deployment
+
+This is a local dev build: Express + `node:sqlite` reading a file on disk. For a
+serverless target (Vercel/Netlify) you'd bundle `data/kanji.db` as a read-only
+asset and port `web/server.js` to the platform's function handler, or pre-render
+the ~2,136 detail pages to static HTML. Not done here.
+
+## Credits & licence
+
+See [`NOTICE`](NOTICE) and the `/credits` page. Data from KanjiVG (CC BY-SA 3.0),
+KANJIDIC2 / JMdict (CC BY-SA 4.0), and KRADFILE/RADKFILE (CC BY-SA 3.0); this
+project's derived data and content are therefore CC BY-SA.

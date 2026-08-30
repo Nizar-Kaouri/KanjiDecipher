@@ -1,0 +1,41 @@
+<%- include('partials/head', { title: 'Radical search', pageClass: 'page-radicals' }) %>
+
+<h1 class="results-heading">Find a kanji by its parts</h1>
+
+<% if (!groups) { %>
+  <p class="note">
+    The radical picker needs the dictionary data. Run
+    <code>npm run pipeline:dictionary</code> and restart the server.
+  </p>
+<% } else { %>
+  <p class="count">
+    Pick one or more components — results show kanji that contain <strong>all</strong> of them.
+    <a href="/browse">Browse by grade / strokes &rarr;</a>
+  </p>
+
+  <div class="rad-selected" id="rad-selected" hidden>
+    <span>Selected:</span>
+    <span id="rad-selected-list"></span>
+    <button type="button" id="rad-clear">Clear</button>
+  </div>
+
+  <div class="rad-grid">
+    <% groups.forEach(function (g) { %>
+      <div class="rad-group">
+        <span class="rad-strokes"><%= g.strokes != null ? g.strokes : '?' %></span>
+        <div class="rad-parts">
+          <% g.parts.forEach(function (p) { %>
+            <button type="button" class="rad-btn" data-part="<%= p.part %>" title="<%= p.count %> jōyō kanji"><%= p.display %></button>
+          <% }) %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="rad-results-wrap">
+    <p class="count" id="rad-count">Select a component to begin.</p>
+    <ul class="result-grid" id="rad-results"></ul>
+  </div>
+<% } %>
+
+<%- include('partials/foot', { pageClass: 'page-radicals' }) %>

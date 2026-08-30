@@ -1,0 +1,50 @@
+<%- include('partials/head', { title: 'Search: ' + search.query, pageClass: 'page-results' }) %>
+
+<h1 class="results-heading">Results for &ldquo;<%= search.query %>&rdquo;</h1>
+
+<% function grid(items) { %>
+  <ul class="result-grid">
+    <% items.forEach(function (r) { %>
+      <li>
+        <a href="/kanji/<%= encodeURIComponent(r.literal) %>">
+          <span class="glyph"><%= r.literal %></span>
+          <span class="gloss"><%= r.meaning %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<% if (total === 0) { %>
+  <p class="empty">
+    Nothing matched &ldquo;<%= search.query %>&rdquo;. Try an English word, a kanji character,
+    or a reading in romaji or kana.
+  </p>
+<% } %>
+
+<% if (search.direct.length) { %>
+  <section class="result-section">
+    <h2>Kanji you typed</h2>
+    <% grid(search.direct) %>
+  </section>
+<% } %>
+
+<% if (search.meaning.length) { %>
+  <section class="result-section">
+    <h2>By meaning</h2>
+    <% grid(search.meaning) %>
+    <% if (search.meaning.length >= 120) { %><p class="count">showing first 120</p><% } %>
+  </section>
+<% } %>
+
+<% if (search.reading.length) { %>
+  <section class="result-section">
+    <h2>Read as <span class="kana">&ldquo;<%= search.readingKana %>&rdquo;</span></h2>
+    <% grid(search.reading) %>
+    <% if (search.reading.length >= 150) { %><p class="count">showing first 150</p><% } %>
+  </section>
+<% } %>
+
+<% if (total > 0) { %><%- include('partials/ad', { slot: 'results-foot', size: 'leaderboard' }) %><% } %>
+
+<%- include('partials/foot', { pageClass: 'page-results' }) %>

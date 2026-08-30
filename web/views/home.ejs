@@ -1,0 +1,61 @@
+<%- include('partials/head', { title: undefined, pageClass: 'page-home' }) %>
+
+<section class="hero">
+  <div class="drift" aria-hidden="true">
+    <% [..."水火木金土日月山川田雨風空海森人力目心手雲石竹花鳥魚"].forEach(function (c, i) { %>
+      <span style="--i: <%= i %>"><%= c %></span>
+    <% }) %>
+  </div>
+
+  <div class="hero-inner">
+    <h1>Where kanji shapes come from</h1>
+    <p class="lede">
+      Search any of the <%= meta.kanji_count %> jōyō kanji to see how it breaks into
+      parts, what it means, how it&rsquo;s read, its stroke order, and a short
+      plain-language account of how the shape came to carry the meaning.
+    </p>
+
+    <form class="search hero-search" action="/search" method="get" role="search" autocomplete="off">
+      <input type="search" name="q" placeholder="Try a kanji, an English word, or a reading…" aria-label="Search kanji">
+      <button type="submit">Search</button>
+    </form>
+
+    <p class="examples">
+      <a href="/kanji/%E6%B0%B4">水</a>
+      <a href="/kanji/%E6%B8%85">清</a>
+      <a href="/kanji/%E6%98%8E">明</a>
+      <a href="/search?q=river">river</a>
+      <a href="/search?q=kawa">kawa</a>
+      <a class="surprise" href="/random">Surprise me &rarr;</a>
+    </p>
+  </div>
+</section>
+
+<%- include('partials/ad', { slot: 'home-top', size: 'leaderboard' }) %>
+
+<section class="explore">
+  <div class="explore-head">
+    <h2>Start exploring</h2>
+    <div class="explore-actions">
+      <a href="/browse">Browse all <%= meta.kanji_count %> &rarr;</a>
+      <a href="/radicals">Find by radical &rarr;</a>
+      <button type="button" class="reshuffle" data-reshuffle aria-label="Show a different set of kanji">
+        Shuffle <span aria-hidden="true">&#8635;</span>
+      </button>
+    </div>
+  </div>
+  <ul class="featured-grid" id="featured-grid">
+    <% featured.forEach(function (k) { %>
+      <li>
+        <a href="/kanji/<%= encodeURIComponent(k.literal) %>">
+          <span class="glyph"><%= k.literal %></span>
+          <span class="gloss"><%= k.meaning %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<%- include('partials/ad', { slot: 'home-foot', size: 'leaderboard' }) %>
+
+<%- include('partials/foot', { pageClass: 'page-home' }) %>

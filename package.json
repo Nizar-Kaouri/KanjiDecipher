@@ -1,0 +1,29 @@
+{
+  "name": "kanji-origin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kanji etymology lookup — search a jōyō kanji, see its components, readings, stroke order, and origin story.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "pipeline:download": "node pipeline/0-download-sources.js",
+    "pipeline:kanjidic": "node pipeline/1-parse-kanjidic2.js",
+    "pipeline:kanjivg": "node pipeline/2-parse-kanjivg.js",
+    "pipeline:build": "node pipeline/3-build-db.js",
+    "pipeline:dictionary": "node pipeline/5-parse-dictionary.js",
+    "pipeline": "npm run pipeline:download && npm run pipeline:kanjidic && npm run pipeline:kanjivg && npm run pipeline:build && npm run pipeline:dictionary",
+    "stories": "node pipeline/4-generate-origin-stories.js",
+    "web": "node web/server.js",
+    "start": "node web/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "fast-xml-parser": "^4.5.1",
+    "wanakana": "^5.3.1",
+    "yauzl": "^3.2.0"
+  }
+}

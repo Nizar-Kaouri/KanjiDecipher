@@ -1,0 +1,89 @@
+<%
+  function qs(overrides) {
+    var p = Object.assign({}, query, overrides);
+    return '?' + Object.keys(p)
+      .filter(function (k) { return p[k] != null && p[k] !== ''; })
+      .map(function (k) { return k + '=' + encodeURIComponent(p[k]); })
+      .join('&');
+  }
+  var FORMATIONS = [
+    ['', 'any formation'],
+    ['pictographic-or-simple', 'pictographic / simple'],
+    ['compound-ideographic', 'compound ideographic'],
+    ['phono-semantic', 'phono-semantic'],
+    ['unknown', 'uncertain'],
+  ];
+%>
+<%- include('partials/head', { title: 'Browse', pageClass: 'page-browse' }) %>
+
+<h1 class="results-heading">Browse the <%= meta.kanji_count %> jōyō kanji</h1>
+
+<form class="browse-filters" method="get" action="/browse">
+  <label>Grade
+    <select name="grade">
+      <option value="">any</option>
+      <% [1,2,3,4,5,6,8].forEach(function (g) { %>
+        <option value="<%= g %>" <%= filters.grade === g ? 'selected' : '' %>><%= g === 8 ? 'secondary (jōyō)' : 'grade ' + g %></option>
+      <% }) %>
+    </select>
+  </label>
+  <label>JLPT
+    <select name="jlpt">
+      <option value="">any</option>
+      <% [1,2,3,4].forEach(function (j) { %>
+        <option value="<%= j %>" <%= filters.jlpt === j ? 'selected' : '' %>>level <%= j %></option>
+      <% }) %>
+    </select>
+  </label>
+  <label>Strokes
+    <select name="strokes">
+      <option value="">any</option>
+      <% strokeCounts.forEach(function (s) { %>
+        <option value="<%= s %>" <%= filters.strokes === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+  </label>
+  <label>Type
+    <select name="formation">
+      <% FORMATIONS.forEach(function (f) { %>
+        <option value="<%= f[0] %>" <%= filters.formation === f[0] ? 'selected' : '' %>><%= f[1] %></option>
+      <% }) %>
+    </select>
+  </label>
+  <label>Sort
+    <select name="sort">
+      <option value="freq" <%= filters.sort === 'freq' ? 'selected' : '' %>>by frequency</option>
+      <option value="strokes" <%= filters.sort === 'strokes' ? 'selected' : '' %>>by stroke count</option>
+      <option value="radical" <%= filters.sort === 'radical' ? 'selected' : '' %>>by radical</option>
+    </select>
+  </label>
+  <button type="submit">Apply</button>
+  <a class="browse-reset" href="/browse">Reset</a>
+</form>
+
+<p class="count"><%= total.toLocaleString('en-US') %> kanji<%= total ? ' · page ' + page + ' of ' + pages : '' %>. <a href="/radicals">Search by radical &rarr;</a></p>
+
+<% if (!results.length) { %>
+  <p class="empty">No kanji match those filters.</p>
+<% } else { %>
+  <ul class="result-grid">
+    <% results.forEach(function (r) { %>
+      <li>
+        <a href="/kanji/<%= encodeURIComponent(r.literal) %>">
+          <span class="glyph"><%= r.literal %></span>
+          <span class="gloss"><%= r.meaning %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+
+  <% if (pages > 1) { %>
+    <nav class="pager">
+      <% if (page > 1) { %><a href="<%= qs({ page: page - 1 }) %>">&larr; Prev</a><% } else { %><span>&larr; Prev</span><% } %>
+      <span class="pager-mid">Page <%= page %> / <%= pages %></span>
+      <% if (page < pages) { %><a href="<%= qs({ page: page + 1 }) %>">Next &rarr;</a><% } else { %><span>Next &rarr;</span><% } %>
+    </nav>
+  <% } %>
+<% } %>
+
+<%- include('partials/foot', { pageClass: 'page-browse' }) %>
