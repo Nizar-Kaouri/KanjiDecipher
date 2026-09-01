@@ -1,75 +1,79 @@
 <%
   function qs(overrides) {
     var p = Object.assign({}, query, overrides);
-    return '?' + Object.keys(p)
+    return lp + '/browse?' + Object.keys(p)
       .filter(function (k) { return p[k] != null && p[k] !== ''; })
       .map(function (k) { return k + '=' + encodeURIComponent(p[k]); })
       .join('&');
   }
   var FORMATIONS = [
-    ['', 'any formation'],
-    ['pictographic-or-simple', 'pictographic / simple'],
-    ['compound-ideographic', 'compound ideographic'],
-    ['phono-semantic', 'phono-semantic'],
-    ['unknown', 'uncertain'],
+    ['', t('browse.formation_any')],
+    ['pictographic-or-simple', t('browse.formation_pictographic')],
+    ['compound-ideographic', t('browse.formation_compound')],
+    ['phono-semantic', t('browse.formation_phono')],
+    ['unknown', t('browse.formation_uncertain')],
   ];
 %>
 <%- include('partials/head', { pageClass: 'page-browse' }) %>
 
-<h1 class="results-heading">Browse the <%= meta.kanji_count %> jōyō kanji</h1>
+<h1 class="results-heading"><%= t('browse.heading', { count: meta.kanji_count }) %></h1>
 
-<form class="browse-filters" method="get" action="/browse">
-  <label>Grade
+<form class="browse-filters" method="get" action="<%= lp %>/browse">
+  <label><%= t('browse.filter_grade') %>
     <select name="grade">
-      <option value="">any</option>
+      <option value=""><%= t('browse.any') %></option>
       <% [1,2,3,4,5,6,8].forEach(function (g) { %>
-        <option value="<%= g %>" <%= filters.grade === g ? 'selected' : '' %>><%= g === 8 ? 'secondary (jōyō)' : 'grade ' + g %></option>
+        <option value="<%= g %>" <%= filters.grade === g ? 'selected' : '' %>><%= g === 8 ? t('browse.grade_secondary') : t('browse.grade_n', { n: g }) %></option>
       <% }) %>
     </select>
   </label>
-  <label>JLPT
+  <label><%= t('browse.filter_jlpt') %>
     <select name="jlpt">
-      <option value="">any</option>
+      <option value=""><%= t('browse.any') %></option>
       <% [1,2,3,4].forEach(function (j) { %>
-        <option value="<%= j %>" <%= filters.jlpt === j ? 'selected' : '' %>>level <%= j %></option>
+        <option value="<%= j %>" <%= filters.jlpt === j ? 'selected' : '' %>><%= t('browse.jlpt_level', { n: j }) %></option>
       <% }) %>
     </select>
   </label>
-  <label>Strokes
+  <label><%= t('browse.filter_strokes') %>
     <select name="strokes">
-      <option value="">any</option>
+      <option value=""><%= t('browse.any') %></option>
       <% strokeCounts.forEach(function (s) { %>
         <option value="<%= s %>" <%= filters.strokes === s ? 'selected' : '' %>><%= s %></option>
       <% }) %>
     </select>
   </label>
-  <label>Type
+  <label><%= t('browse.filter_type') %>
     <select name="formation">
       <% FORMATIONS.forEach(function (f) { %>
         <option value="<%= f[0] %>" <%= filters.formation === f[0] ? 'selected' : '' %>><%= f[1] %></option>
       <% }) %>
     </select>
   </label>
-  <label>Sort
+  <label><%= t('browse.filter_sort') %>
     <select name="sort">
-      <option value="freq" <%= filters.sort === 'freq' ? 'selected' : '' %>>by frequency</option>
-      <option value="strokes" <%= filters.sort === 'strokes' ? 'selected' : '' %>>by stroke count</option>
-      <option value="radical" <%= filters.sort === 'radical' ? 'selected' : '' %>>by radical</option>
+      <option value="freq" <%= filters.sort === 'freq' ? 'selected' : '' %>><%= t('browse.sort_freq') %></option>
+      <option value="strokes" <%= filters.sort === 'strokes' ? 'selected' : '' %>><%= t('browse.sort_strokes') %></option>
+      <option value="radical" <%= filters.sort === 'radical' ? 'selected' : '' %>><%= t('browse.sort_radical') %></option>
     </select>
   </label>
-  <button type="submit">Apply</button>
-  <a class="browse-reset" href="/browse">Reset</a>
+  <button type="submit"><%= t('browse.apply') %></button>
+  <a class="browse-reset" href="<%= lp %>/browse"><%= t('browse.reset') %></a>
 </form>
 
-<p class="count"><%= total.toLocaleString('en-US') %> kanji<%= total ? ' · page ' + page + ' of ' + pages : '' %>. <a href="/radicals">Search by radical &rarr;</a></p>
+<p class="count">
+  <%= total ? t('browse.count_paged', { count: total.toLocaleString('en-US'), page: page, pages: pages })
+            : t('browse.count', { count: total.toLocaleString('en-US') }) %>.
+  <a href="<%= lp %>/radicals"><%= t('browse.search_radical') %> &rarr;</a>
+</p>
 
 <% if (!results.length) { %>
-  <p class="empty">No kanji match those filters.</p>
+  <p class="empty"><%= t('browse.no_match') %></p>
 <% } else { %>
   <ul class="result-grid">
     <% results.forEach(function (r) { %>
       <li>
-        <a href="/kanji/<%= encodeURIComponent(r.literal) %>">
+        <a href="<%= lp %>/kanji/<%= encodeURIComponent(r.literal) %>">
           <span class="glyph"><%= r.literal %></span>
           <span class="gloss"><%= r.meaning %></span>
         </a>
@@ -79,9 +83,9 @@
 
   <% if (pages > 1) { %>
     <nav class="pager">
-      <% if (page > 1) { %><a href="<%= qs({ page: page - 1 }) %>">&larr; Prev</a><% } else { %><span>&larr; Prev</span><% } %>
-      <span class="pager-mid">Page <%= page %> / <%= pages %></span>
-      <% if (page < pages) { %><a href="<%= qs({ page: page + 1 }) %>">Next &rarr;</a><% } else { %><span>Next &rarr;</span><% } %>
+      <% if (page > 1) { %><a href="<%= qs({ page: page - 1 }) %>">&larr; <%= t('browse.prev') %></a><% } else { %><span>&larr; <%= t('browse.prev') %></span><% } %>
+      <span class="pager-mid"><%= t('browse.page_of', { page: page, pages: pages }) %></span>
+      <% if (page < pages) { %><a href="<%= qs({ page: page + 1 }) %>"><%= t('browse.next') %> &rarr;</a><% } else { %><span><%= t('browse.next') %> &rarr;</span><% } %>
     </nav>
   <% } %>
 <% } %>

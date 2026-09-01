@@ -5,7 +5,16 @@ import { fileURLToPath } from "node:url";
 import * as wanakana from "wanakana";
 import { openDb } from "../pipeline/lib/db.js";
 import { normalizeReading } from "../pipeline/lib/kana.js";
-import { FORMATION_LABELS } from "../pipeline/lib/formation.js";
+import {
+  LANGS,
+  PREFIXED_LANGS,
+  PREFIX_RE,
+  isSupported,
+  langName,
+  langDir,
+  coverage,
+  translator,
+} from "./i18n.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = path.join(here, "..", "data", "kanji.db");
@@ -24,11 +33,52 @@ const META = Object.fromEntries(
   db.prepare("SELECT key, value FROM meta").all().map((r) => [r.key, r.value]),
 );
 
-const POSITION_LABELS = {
-  left: "left", right: "right", top: "top", bottom: "bottom",
-  "tare": "top-left wrap", "nyo": "bottom-left wrap", "kamae": "enclosure",
-  "kamae1": "enclosure", "kamae2": "enclosure",
+// ---------- multilingual content (meanings / glosses / origin stories) ----------
+// Present only after the pipeline's localisation steps have run. Until then the
+// site serves English everywhere and every `lang` argument falls back to it.
+
+const hasTable = (name) =>
+  !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+const hasColumn = (table, col) =>
+  hasTable(table) &&
+  db.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name=?`).get(col);
+
+const safeParse = (s) => {
+  try { return JSON.parse(s); } catch { return []; }
 };
+
+const EN_MEANINGS = new Map(
+  db.prepare("SELECT literal, meanings FROM kanji").all().map((r) => [r.literal, safeParse(r.meanings)]),
+);
+
+const HAS_MEANINGS_L10N = hasTable("kanji_meanings_l10n");
+const L10N_MEANINGS = new Map(); // lang -> Map(literal -> [string])
+if (HAS_MEANINGS_L10N) {
+  for (const r of db.prepare("SELECT literal, lang, meanings FROM kanji_meanings_l10n").all()) {
+    if (!L10N_MEANINGS.has(r.lang)) L10N_MEANINGS.set(r.lang, new Map());
+    L10N_MEANINGS.get(r.lang).set(r.literal, safeParse(r.meanings));
+  }
+}
+
+/** Meanings array for a kanji in `lang`, falling back to English. */
+function meaningsOf(literal, lang = "en") {
+  if (lang !== "en") {
+    const m = L10N_MEANINGS.get(lang)?.get(literal);
+    if (m && m.length) return m;
+  }
+  return EN_MEANINGS.get(literal) || [];
+}
+/** First `n` meanings joined — the text shown on a kanji card. */
+function meaningText(literal, lang = "en", n = 4) {
+  return meaningsOf(literal, lang).slice(0, n).join(", ");
+}
+
+const HAS_ORIGIN_L10N = hasTable("origin_stories");
+const originStoryStmt = HAS_ORIGIN_L10N
+  ? db.prepare("SELECT story FROM origin_stories WHERE literal=? AND lang=?")
+  : null;
+
+const EXWORDS_HAS_LANG = !!hasColumn("example_words", "lang");
 
 // ---------- queries ----------
 
@@ -81,23 +131,32 @@ const KANJI_SET = new Set(
 const dictStmts = HAS_DICT
   ? {
       exampleWords: db.prepare(
-        "SELECT word, reading, gloss FROM example_words WHERE kanji_literal = ? ORDER BY order_index LIMIT 8",
+        EXWORDS_HAS_LANG
+          ? "SELECT word, reading, gloss FROM example_words WHERE kanji_literal = ? AND lang = ? ORDER BY order_index LIMIT 8"
+          : "SELECT word, reading, gloss FROM example_words WHERE kanji_literal = ? ORDER BY order_index LIMIT 8",
       ),
       radicalsAll: db.prepare(
         "SELECT part, display, strokes, joyo_count FROM radicals ORDER BY strokes, joyo_count DESC",
       ),
       // Whole-word lookup (a word appears once per constituent kanji, so DISTINCT).
       wordEntries: db.prepare(
-        "SELECT DISTINCT reading, gloss FROM example_words WHERE word = ? ORDER BY reading",
+        EXWORDS_HAS_LANG
+          ? "SELECT DISTINCT reading, gloss FROM example_words WHERE word = ? AND lang = ? ORDER BY reading"
+          : "SELECT DISTINCT reading, gloss FROM example_words WHERE word = ? ORDER BY reading",
       ),
       wordExists: db.prepare("SELECT 1 FROM example_words WHERE word = ? LIMIT 1"),
       // Find words by their exact kana reading (for kana / romaji searches).
       // Single-character "words" are skipped — they're just kanji, already
       // covered by the reading index.
-      wordsByReading: db.prepare(`
-        SELECT word, gloss, MIN(priority) AS priority
-        FROM example_words WHERE reading = ? AND length(word) >= 2
-        GROUP BY word ORDER BY priority, length(word) LIMIT 20`),
+      wordsByReading: db.prepare(
+        EXWORDS_HAS_LANG
+          ? `SELECT word, gloss, MIN(priority) AS priority
+             FROM example_words WHERE reading = ? AND lang = ? AND length(word) >= 2
+             GROUP BY word ORDER BY priority, length(word) LIMIT 20`
+          : `SELECT word, gloss, MIN(priority) AS priority
+             FROM example_words WHERE reading = ? AND length(word) >= 2
+             GROUP BY word ORDER BY priority, length(word) LIMIT 20`,
+      ),
     }
   : null;
 
@@ -120,32 +179,32 @@ const HTML_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'"
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => HTML_ESCAPE[c]);
 
 /** HTML-escape text, then turn each jōyō-kanji character into a link to its page. */
-function linkifyKanji(text) {
+function linkifyKanji(text, lp = "") {
   if (!text) return "";
   return escapeHtml(text).replace(/[㐀-鿿]/g, (ch) =>
     KANJI_SET.has(ch)
-      ? `<a class="kref" href="/kanji/${encodeURIComponent(ch)}">${ch}</a>`
+      ? `<a class="kref" href="${lp}/kanji/${encodeURIComponent(ch)}">${ch}</a>`
       : ch,
   );
 }
 
 // Hand-picked kanji with clear, visual etymologies — the home-page starting points.
 const FEATURED = [..."水火木山川日月人雨花森明"];
-const featuredCards = () =>
-  FEATURED.filter((c) => oneKanjiStmt.get(c)).map((c) => {
-    const row = stmts.kanji.get(c);
-    return { literal: c, meaning: snippet(row.meanings, 2) };
-  });
+const featuredCards = (lang = "en") =>
+  FEATURED.filter((c) => oneKanjiStmt.get(c)).map((c) => ({
+    literal: c,
+    meaning: meaningText(c, lang, 2),
+  }));
 
-function parseKanjiRow(row) {
+function parseKanjiRow(row, lang = "en") {
   if (!row) return null;
   return {
     ...row,
-    meanings: JSON.parse(row.meanings),
+    meanings: meaningsOf(row.literal, lang),
+    meanings_en: safeParse(row.meanings),
     on_readings: JSON.parse(row.on_readings),
     kun_readings: JSON.parse(row.kun_readings),
     nanori: JSON.parse(row.nanori),
-    formation_label: FORMATION_LABELS[row.formation_type] ?? row.formation_type,
   };
 }
 
@@ -159,8 +218,8 @@ function primaryReading(k) {
 }
 
 /** Compact card data for one kanji — used in the word-breakdown view. */
-function kanjiCard(literal) {
-  const row = parseKanjiRow(stmts.kanji.get(literal));
+function kanjiCard(literal, lang = "en") {
+  const row = parseKanjiRow(stmts.kanji.get(literal), lang);
   if (!row) return null;
   return {
     literal: row.literal,
@@ -169,22 +228,16 @@ function kanjiCard(literal) {
   };
 }
 
-function snippet(meaningsJson, n = 4) {
-  try {
-    return JSON.parse(meaningsJson).slice(0, n).join(", ");
-  } catch {
-    return "";
-  }
-}
-
-function toResultList(rows) {
+function toResultList(rows, lang = "en") {
   return rows.map((r) => ({
     literal: r.literal,
-    meaning: snippet(r.meanings),
+    meaning: meaningText(r.literal, lang),
   }));
 }
 
-function searchMeaning(q) {
+// Meaning search always matches against the English glosses (the only ones
+// indexed); only the meanings *shown* on the result cards are localised.
+function searchMeaning(q, lang = "en") {
   const clean = q.trim().toLowerCase();
   if (!clean) return [];
   if (meaningFtsStmt) {
@@ -193,16 +246,16 @@ function searchMeaning(q) {
       const match = tokens.map((t) => `"${t}"`).join(" ") + (tokens.length === 1 ? ` OR "${tokens[0]}"*` : "");
       try {
         const rows = meaningFtsStmt.all(match);
-        if (rows.length) return toResultList(rows);
+        if (rows.length) return toResultList(rows, lang);
       } catch {
         /* fall through to LIKE */
       }
     }
   }
-  return toResultList(stmts.meaningLike.all(`%${clean}%`));
+  return toResultList(stmts.meaningLike.all(`%${clean}%`), lang);
 }
 
-function searchReading(input) {
+function searchReading(input, lang = "en") {
   // Accept kana directly, or romaji (convert with wanakana).
   let kana = input.trim();
   if (/[a-z]/i.test(kana)) kana = wanakana.toKana(kana, { IMEMode: false });
@@ -214,7 +267,7 @@ function searchReading(input) {
     .all(`${norm}%`, norm)
     .filter((r) => !seen.has(r.literal));
   // Exact reading first, then longer readings that start with it.
-  return { kana: norm, results: toResultList([...exact, ...prefix].slice(0, 150)) };
+  return { kana: norm, results: toResultList([...exact, ...prefix].slice(0, 150), lang) };
 }
 
 /**
@@ -222,13 +275,13 @@ function searchReading(input) {
  * whose English meaning matches, and kanji with a matching reading (kana typed
  * directly, or romaji converted to kana). No search-type switch.
  */
-function unifiedSearch(q) {
+function unifiedSearch(q, lang = "en") {
   const raw = q.trim();
   const directSet = new Set();
   const direct = [];
   for (const ch of raw) {
     if (wanakana.isKanji(ch) && !directSet.has(ch)) {
-      const k = lookupKanji(ch);
+      const k = lookupKanji(ch, lang);
       if (k) {
         directSet.add(ch);
         direct.push({ literal: k.literal, meaning: k.meanings.slice(0, 4).join(", ") });
@@ -237,7 +290,7 @@ function unifiedSearch(q) {
   }
 
   let meaning = [];
-  if (/[a-z]/i.test(raw)) meaning = searchMeaning(raw);
+  if (/[a-z]/i.test(raw)) meaning = searchMeaning(raw, lang);
 
   let reading = [];
   let readingKana = null;
@@ -250,10 +303,10 @@ function unifiedSearch(q) {
   }
   let words = [];
   if (kana) {
-    const r = searchReading(kana);
+    const r = searchReading(kana, lang);
     readingKana = r.kana;
     reading = r.results;
-    words = searchWordsByReading(readingKana || kana);
+    words = searchWordsByReading(readingKana || kana, lang);
   }
 
   meaning = meaning.filter((c) => !directSet.has(c.literal));
@@ -263,11 +316,41 @@ function unifiedSearch(q) {
 }
 
 /** Multi-character words (jukugo) whose exact kana reading matches the query. */
-function searchWordsByReading(kana) {
+function searchWordsByReading(kana, lang = "en") {
   if (!dictStmts) return [];
   const norm = (kana || "").trim();
   if (!norm) return [];
-  return dictStmts.wordsByReading.all(norm).map((r) => ({ word: r.word, gloss: r.gloss }));
+  let rows = EXWORDS_HAS_LANG
+    ? dictStmts.wordsByReading.all(norm, lang)
+    : dictStmts.wordsByReading.all(norm);
+  if (!rows.length && EXWORDS_HAS_LANG && lang !== "en") {
+    rows = dictStmts.wordsByReading.all(norm, "en");
+  }
+  return rows.map((r) => ({ word: r.word, gloss: r.gloss }));
+}
+
+/**
+ * Common words for a kanji: the English-selected set (stable choice + order),
+ * with each gloss swapped for its `lang` translation where one exists.
+ */
+function exampleWordsFor(literal, lang = "en") {
+  if (!dictStmts) return [];
+  if (!EXWORDS_HAS_LANG) return dictStmts.exampleWords.all(literal);
+  const en = dictStmts.exampleWords.all(literal, "en");
+  if (lang === "en" || !en.length) return en;
+  const tr = new Map(
+    dictStmts.exampleWords.all(literal, lang).map((r) => [r.word, r.gloss]),
+  );
+  return en.map((r) => (tr.has(r.word) ? { ...r, gloss: tr.get(r.word) } : r));
+}
+
+/** Dictionary entries (reading + gloss) for a whole word, in `lang` w/ fallback. */
+function wordEntriesFor(word, lang = "en") {
+  if (!dictStmts) return [];
+  if (!EXWORDS_HAS_LANG) return dictStmts.wordEntries.all(word);
+  let rows = dictStmts.wordEntries.all(word, lang);
+  if (!rows.length && lang !== "en") rows = dictStmts.wordEntries.all(word, "en");
+  return rows;
 }
 
 /**
@@ -286,26 +369,34 @@ function wordRedirectPath(s) {
   return null;
 }
 
-function toChips(rows, exclude = new Set()) {
+function toChips(rows, lang = "en", exclude = new Set()) {
   return rows
     .filter((r) => !exclude.has(r.literal))
-    .map((r) => ({ literal: r.literal, meaning: snippet(r.meanings, 2) }));
+    .map((r) => ({ literal: r.literal, meaning: meaningText(r.literal, lang, 2) }));
 }
 
-function lookupKanji(literal) {
-  const row = parseKanjiRow(stmts.kanji.get(literal));
+function lookupKanji(literal, lang = "en") {
+  const row = parseKanjiRow(stmts.kanji.get(literal), lang);
   if (!row) return null;
   const components = stmts.components.all(literal).map((c) => ({
     element: c.element,
-    position: c.position,
-    positionLabel: c.position ? POSITION_LABELS[c.position] ?? c.position : null,
+    position: c.position || null,
     isRadical: !!c.is_radical,
     isPhonetic: !!c.is_phonetic,
-    role: c.is_phonetic ? "sound hint" : c.is_radical ? "radical" : "meaning part",
+    roleKey: c.is_phonetic ? "sound-hint" : c.is_radical ? "radical" : "meaning-part",
   }));
 
   // Example words + related-kanji rails.
-  const exampleWords = dictStmts ? dictStmts.exampleWords.all(literal) : [];
+  const exampleWords = exampleWordsFor(literal, lang);
+
+  // Origin story: prefer the requested language, fall back to English.
+  let originStory = row.origin_story;
+  let originIsFallback = false;
+  if (lang !== "en") {
+    const localized = originStoryStmt?.get(literal, lang)?.story;
+    if (localized) originStory = localized;
+    else if (originStory) originIsFallback = true;
+  }
 
   const exclude = new Set([literal]);
   const phoneticEls = [...new Set(components.filter((c) => c.isPhonetic).map((c) => c.element))];
@@ -313,11 +404,11 @@ function lookupKanji(literal) {
   for (const el of phoneticEls) {
     for (const r of relStmts.samePhonetic.all(el, literal)) samePhonetic.push(r);
   }
-  const samePhoneticChips = toChips(dedupeByLiteral(samePhonetic), exclude);
+  const samePhoneticChips = toChips(dedupeByLiteral(samePhonetic), lang, exclude);
   samePhoneticChips.forEach((c) => exclude.add(c.literal));
 
   const sameRadical = row.radical_number
-    ? toChips(relStmts.sameRadical.all(row.radical_number, literal), exclude)
+    ? toChips(relStmts.sameRadical.all(row.radical_number, literal), lang, exclude)
     : [];
   sameRadical.forEach((c) => exclude.add(c.literal));
 
@@ -344,11 +435,13 @@ function lookupKanji(literal) {
         ORDER BY shared DESC, (k.freq IS NULL), k.freq
         LIMIT 20`)
       .all(...myEls, literal);
-    sharesComponents = toChips(rows, exclude).slice(0, 12);
+    sharesComponents = toChips(rows, lang, exclude).slice(0, 12);
   }
 
   return {
     ...row,
+    origin_story: originStory,
+    originIsFallback,
     components,
     exampleWords,
     samePhonetic: samePhoneticChips.slice(0, 14),
@@ -399,10 +492,56 @@ function siteBase(req) {
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, "");
   return `${req.protocol}://${req.get("host")}`;
 }
+
+const SITE_NAME = app.locals.SITE_NAME;
+const CONTACT_EMAIL = app.locals.CONTACT_EMAIL;
+const KANJI_COUNT_FMT = Number(META.kanji_count).toLocaleString("en-US");
+
+function readCookie(req, name) {
+  const raw = req.headers.cookie || "";
+  const m = raw.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// ---------- locale: URL prefix (/fr, /es, /pt, /de) + cookie ----------
 app.use((req, res, next) => {
   const base = siteBase(req);
+
+  // Pull a "/xx" language prefix off the URL and hide it from the routes.
+  const m = req.url.match(PREFIX_RE);
+  let lang = "en";
+  if (m) {
+    lang = m[1];
+    req.url = req.url.slice(3) || "/";
+    if (req.url[0] !== "/") req.url = "/" + req.url;
+  } else {
+    // Bare "/" with a saved non-English preference → send them to /xx/.
+    const pref = readCookie(req, "lang");
+    if (req.path === "/" && pref && isSupported(pref) && pref !== "en") {
+      return res.redirect(302, "/" + pref + "/");
+    }
+  }
+
+  const lp = lang === "en" ? "" : "/" + lang;
+  const tt = translator(lang);
+  const cleanPath = req.path;
+
+  res.locals.lang = lang;
+  res.locals.lp = lp;
+  res.locals.langDir = langDir(lang);
+  res.locals.langLabel = langName(lang);
+  res.locals.t = tt;
+  res.locals.linkifyKanji = (text) => linkifyKanji(text, lp);
   res.locals.siteUrl = base;
-  res.locals.canonical = base + req.path;
+  res.locals.canonical = base + lp + cleanPath;
+  res.locals.langOptions = LANGS.map((l) => ({ code: l, name: langName(l), current: l === lang }));
+  res.locals.altLangs = [
+    ...LANGS.map((l) => ({
+      hreflang: l,
+      href: base + (l === "en" ? "" : "/" + l) + cleanPath,
+    })),
+    { hreflang: "x-default", href: base + cleanPath },
+  ];
   next();
 });
 
@@ -410,198 +549,199 @@ app.use((req, res, next) => {
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-/** { title, description } for a kanji detail page, built from its data. */
-function kanjiSeo(k) {
+/** { title, description } for a kanji detail page, built from its (localised) data. */
+function kanjiSeo(k, tt) {
   const primary = k.meanings[0] || "";
   const reading = primaryReading(k);
   const romaji = reading ? wanakana.toRomaji(reading.replace(/[.\-]/g, "")) : "";
   const paren = romaji || reading;
-  const meaningList = k.meanings.slice(0, 3).join(", ");
   return {
     title: `${k.literal}${primary ? ` (${cap(primary)})` : ""}`,
-    description:
-      `${k.literal}${paren ? ` (${paren})` : ""} means ${meaningList || "—"} — ` +
-      `see its origin story, stroke order, readings, and related kanji on Kanji Decipher.`,
+    description: tt("seo.kanji_description", {
+      literal: k.literal,
+      paren: paren ? ` (${paren})` : "",
+      meanings: k.meanings.slice(0, 3).join(", ") || tt("kanji.meanings_dash"),
+      site: SITE_NAME,
+    }),
   };
 }
 
 /** { title, description } for a /word/ page. `entry` = the dictionary hit or null. */
-function wordSeo(word, entry, parts) {
+function wordSeo(word, entry, parts, tt) {
   const reading = entry?.reading || "";
   const romaji = reading ? wanakana.toRomaji(reading) : "";
   const paren = romaji || reading;
-  const list = parts.length === 2 ? parts.join(" and ") : parts.join(", ");
+  const join = parts.length === 2 ? tt("seo.word_parts_join") : ", ";
   return {
     title: `${word}${paren ? ` (${paren})` : ""}`,
     description: entry
-      ? `${word}${paren ? ` (${paren})` : ""} means ${entry.gloss || "—"} — ` +
-        `see how it breaks down into ${list || "its characters"} on Kanji Decipher.`
-      : `“${word}” isn't a dictionary entry, but here's what each of its characters ` +
-        `(${parts.join(", ") || "—"}) means, with stroke order and origins on Kanji Decipher.`,
+      ? tt("seo.word_description_exact", {
+          word,
+          paren: paren ? ` (${paren})` : "",
+          gloss: entry.gloss || tt("kanji.meanings_dash"),
+          parts: parts.join(join) || word,
+          site: SITE_NAME,
+        })
+      : tt("seo.word_description_plain", {
+          word,
+          parts: parts.join(", ") || tt("kanji.meanings_dash"),
+          site: SITE_NAME,
+        }),
   };
 }
 
-const KANJI_COUNT_FMT = Number(META.kanji_count).toLocaleString("en-US");
-const PAGE_SEO = {
-  browse: {
-    title: `Browse all ${KANJI_COUNT_FMT} jōyō kanji`,
-    description:
-      "Browse and filter every jōyō kanji by grade, former JLPT level, stroke count, or formation type.",
-  },
-  radicals: {
-    title: "Radical & component search",
-    description:
-      "Find a kanji by picking its visual components. Select one or more radicals to narrow the list.",
-  },
-  credits: {
-    title: "Credits & licences",
-    description:
-      "The freely-licensed data sources behind Kanji Decipher: KanjiVG, KANJIDIC2, JMdict and KRADFILE.",
-  },
-  about: {
-    title: "About",
-    description:
-      "What Kanji Decipher is — a free lookup tool for the origins, components, readings and stroke order of the jōyō kanji — and why it exists.",
-  },
-  privacy: {
-    title: "Privacy policy",
-    description:
-      "How Kanji Decipher handles data: no accounts, no personal data collected today, and how advertising cookies will work once ads are enabled.",
-  },
-};
+/** SEO block for a static page, keyed by its catalog prefix (seo.<key>_*). */
+function pageSeo(tt, key) {
+  return {
+    title: tt(`seo.${key}_title`, { count: KANJI_COUNT_FMT, site: SITE_NAME }),
+    description: tt(`seo.${key}_description`, { count: KANJI_COUNT_FMT, site: SITE_NAME }),
+  };
+}
 
 app.get("/", (req, res) => {
-  res.render("home", { meta: META, featured: featuredCards() });
+  res.render("home", { meta: META, featured: featuredCards(res.locals.lang) });
 });
 
 app.get("/about", (req, res) => {
-  res.render("about", { ...PAGE_SEO.about });
+  res.render("about", { ...pageSeo(res.locals.t, "about") });
 });
 
 app.get("/privacy", (req, res) => {
-  res.render("privacy", { ...PAGE_SEO.privacy });
+  res.render("privacy", { ...pageSeo(res.locals.t, "privacy") });
 });
 
 // A random kanji page — the "surprise me" link.
 app.get("/random", (req, res) => {
   const row = randomStmt.get(1);
-  res.redirect(row ? `/kanji/${encodeURIComponent(row.literal)}` : "/");
+  res.redirect(row ? `${res.locals.lp}/kanji/${encodeURIComponent(row.literal)}` : `${res.locals.lp}/`);
 });
 
 // A handful of random kanji cards (home-page "explore" refresh).
 app.get("/api/random", (req, res) => {
   const n = Math.min(24, Math.max(1, Number(req.query.n) || 12));
+  const lang = isSupported(req.query.lang) ? req.query.lang : "en";
   res.set("Cache-Control", "no-store");
   const items = randomStmt.all(n).map((r) => ({
     literal: r.literal,
-    meaning: snippet(r.meanings, 2),
+    meaning: meaningText(r.literal, lang, 2),
   }));
   res.json({ items });
 });
 
 app.get("/search", (req, res) => {
+  const { lang, lp } = res.locals;
+  const tt = res.locals.t;
   const q = (req.query.q ?? "").toString();
-  if (!q.trim()) return res.redirect("/");
+  if (!q.trim()) return res.redirect(`${lp}/`);
 
-  const t = q.trim();
+  const qt = q.trim();
 
   // A single kanji character: go straight to its page.
-  if ([...t].length === 1 && wanakana.isKanji(t)) {
-    return res.redirect(`/kanji/${encodeURIComponent(t)}`);
+  if ([...qt].length === 1 && wanakana.isKanji(qt)) {
+    return res.redirect(`${lp}/kanji/${encodeURIComponent(qt)}`);
   }
 
   // A run of 2+ kanji (no kana, no romaji, no English): try it as a whole word.
-  const wordPath = wordRedirectPath(t);
-  if (wordPath) return res.redirect(wordPath);
+  const wordPath = wordRedirectPath(qt);
+  if (wordPath) return res.redirect(lp + wordPath);
 
-  const search = unifiedSearch(q);
+  const search = unifiedSearch(q, lang);
   const kanjiTotal = search.direct.length + search.meaning.length + search.reading.length;
   const total = kanjiTotal + search.words.length;
 
   // Exactly one hit overall: jump straight to it.
   if (total === 1 && search.words.length === 1) {
-    return res.redirect(`/word/${encodeURIComponent(search.words[0].word)}`);
+    return res.redirect(`${lp}/word/${encodeURIComponent(search.words[0].word)}`);
   }
   if (total === 1 && kanjiTotal === 1) {
     const only = search.direct[0] || search.meaning[0] || search.reading[0];
-    return res.redirect(`/kanji/${encodeURIComponent(only.literal)}`);
+    return res.redirect(`${lp}/kanji/${encodeURIComponent(only.literal)}`);
   }
 
   res.render("results", {
     search,
     total,
-    title: `Search: “${search.query}”`,
-    description: `Kanji related to “${search.query}” on Kanji Decipher.`,
+    title: tt("seo.search_title", { q: search.query }),
+    description: tt("seo.search_description", { q: search.query, site: SITE_NAME }),
     noindex: true,
   });
 });
 
 app.get("/api/search", (req, res) => {
+  const lang = isSupported(req.query.lang) ? req.query.lang : res.locals.lang;
   const q = (req.query.q ?? "").toString();
   if (!q.trim())
     return res.json({ query: "", direct: [], meaning: [], reading: [], words: [], readingKana: null });
-  res.json(unifiedSearch(q));
+  res.json(unifiedSearch(q, lang));
 });
 
 // Typeahead: a short, flat, ranked list for the search-bar dropdown.
 app.get("/api/suggest", (req, res) => {
+  const lang = isSupported(req.query.lang) ? req.query.lang : res.locals.lang;
+  const lp = lang === "en" ? "" : "/" + lang;
+  const tt = translator(lang);
   const q = (req.query.q ?? "").toString().trim();
   res.set("Cache-Control", "no-store");
   if (!q) return res.json({ q, kana: null, items: [] });
 
-  const s = unifiedSearch(q);
+  const s = unifiedSearch(q, lang);
   const items = [];
   const seen = new Set();
   const add = (it) => {
-    const href = it.href || `/kanji/${encodeURIComponent(it.literal)}`;
+    const href = lp + (it.href || `/kanji/${encodeURIComponent(it.literal)}`);
     if (seen.has(href) || items.length >= 8) return;
     seen.add(href);
     items.push({ literal: it.literal, meaning: it.meaning, reason: it.reason, href });
   };
 
-  s.direct.forEach((r) => add({ ...r, reason: "you typed this" }));
+  s.direct.forEach((r) => add({ ...r, reason: tt("suggest.you_typed") }));
   if (s.readingKana) {
-    // Kana / romaji query: whole words and single-kanji readings are the intent.
+    const reason = tt("suggest.read_as", { kana: s.readingKana });
     s.words.forEach((w) =>
-      add({ literal: w.word, meaning: w.gloss, reason: `read ${s.readingKana}`, href: `/word/${encodeURIComponent(w.word)}` }),
+      add({ literal: w.word, meaning: w.gloss, reason, href: `/word/${encodeURIComponent(w.word)}` }),
     );
-    s.reading.forEach((r) => add({ ...r, reason: `read ${s.readingKana}` }));
+    s.reading.forEach((r) => add({ ...r, reason }));
   } else {
-    s.meaning.forEach((r) => add({ ...r, reason: "meaning" }));
+    s.meaning.forEach((r) => add({ ...r, reason: tt("suggest.meaning") }));
   }
 
   res.json({ q, kana: s.readingKana, items });
 });
 
 app.get("/kanji/:char", (req, res) => {
+  const { lang, lp } = res.locals;
   const char = decodeURIComponent(req.params.char);
-  const kanji = lookupKanji(char);
+  const kanji = lookupKanji(char, lang);
   if (!kanji) {
     // A multi-kanji string landed here (old link, hand-typed URL) — it belongs
     // on the word page.
     const wordPath = wordRedirectPath(char.trim());
-    if (wordPath) return res.redirect(301, wordPath);
-    return res
-      .status(404)
-      .render("404", { message: `No jōyō kanji “${char}” in the database.`, title: "Not found", noindex: true });
+    if (wordPath) return res.redirect(301, lp + wordPath);
+    return res.status(404).render("404", {
+      message: res.locals.t("notfound.no_kanji", { char }),
+      title: res.locals.t("notfound.title"),
+      noindex: true,
+    });
   }
-  res.render("kanji", { kanji, meta: META, ...kanjiSeo(kanji) });
+  res.render("kanji", { kanji, meta: META, ...kanjiSeo(kanji, res.locals.t) });
 });
 
 // ---------- whole-word lookup ----------
 
 app.get("/word/:word", (req, res) => {
+  const { lang, lp } = res.locals;
+  const tt = res.locals.t;
   const word = decodeURIComponent(req.params.word).trim();
   const chars = [...word];
 
-  if (!word) return res.redirect("/");
+  if (!word) return res.redirect(`${lp}/`);
 
   // A bare single kanji belongs on the kanji page.
   if (chars.length === 1 && KANJI_SET.has(word)) {
-    return res.redirect(`/kanji/${encodeURIComponent(word)}`);
+    return res.redirect(`${lp}/kanji/${encodeURIComponent(word)}`);
   }
 
-  const entries = dictStmts ? dictStmts.wordEntries.all(word) : [];
+  const entries = wordEntriesFor(word, lang);
   const isExact = entries.length > 0;
 
   const kanjiChars = chars.filter((c) => wanakana.isKanji(c));
@@ -609,8 +749,8 @@ app.get("/word/:word", (req, res) => {
 
   if (!isExact && !isJoyoRun) {
     return res.status(404).render("404", {
-      message: `“${word}” isn't a dictionary word, and it isn't a run of jōyō kanji to break down.`,
-      title: "Not found",
+      message: tt("notfound.not_word", { word }),
+      title: tt("notfound.title"),
       noindex: true,
     });
   }
@@ -621,7 +761,7 @@ app.get("/word/:word", (req, res) => {
   for (const c of kanjiChars) {
     if (seen.has(c)) continue;
     seen.add(c);
-    const card = kanjiCard(c);
+    const card = kanjiCard(c, lang);
     if (card) breakdown.push(card);
   }
 
@@ -632,7 +772,7 @@ app.get("/word/:word", (req, res) => {
     isExact,
     breakdown,
     meta: META,
-    ...wordSeo(word, entries[0] || null, parts),
+    ...wordSeo(word, entries[0] || null, parts, tt),
     // Don't invite crawlers to index unverified kanji combinations.
     noindex: !isExact,
   });
@@ -673,7 +813,7 @@ app.get("/browse", (req, res) => {
   const clampedPage = Math.min(page, pages);
   const rows = db
     .prepare(`
-      SELECT literal, meanings FROM kanji ${whereSql}
+      SELECT literal FROM kanji ${whereSql}
       ORDER BY ${BROWSE_SORTS[sort]}
       LIMIT ? OFFSET ?`)
     .all(...params, BROWSE_PER_PAGE, (clampedPage - 1) * BROWSE_PER_PAGE);
@@ -685,21 +825,21 @@ app.get("/browse", (req, res) => {
 
   res.render("browse", {
     meta: META,
-    results: rows.map((r) => ({ literal: r.literal, meaning: snippet(r.meanings, 3) })),
+    results: rows.map((r) => ({ literal: r.literal, meaning: meaningText(r.literal, res.locals.lang, 3) })),
     filters: { grade, jlpt, strokes, formation, sort },
     strokeCounts,
     total,
     page: clampedPage,
     pages,
     query: req.query,
-    ...PAGE_SEO.browse,
+    ...pageSeo(res.locals.t, "browse"),
     noindex: Object.keys(req.query).length > 0,
   });
 });
 
 app.get("/radicals", (req, res) => {
   if (!HAS_DICT) {
-    return res.render("radicals", { meta: META, groups: null, ...PAGE_SEO.radicals });
+    return res.render("radicals", { meta: META, groups: null, ...pageSeo(res.locals.t, "radicals") });
   }
   const rows = dictStmts.radicalsAll.all();
   const groups = [];
@@ -711,11 +851,12 @@ app.get("/radicals", (req, res) => {
     }
     cur.parts.push({ part: r.part, display: r.display || r.part, count: r.joyo_count });
   }
-  res.render("radicals", { meta: META, groups, ...PAGE_SEO.radicals });
+  res.render("radicals", { meta: META, groups, ...pageSeo(res.locals.t, "radicals") });
 });
 
 app.get("/api/by-radicals", (req, res) => {
   res.set("Cache-Control", "no-store");
+  const lang = isSupported(req.query.lang) ? req.query.lang : "en";
   const parts = (req.query.parts ?? "")
     .toString()
     .split(",")
@@ -726,7 +867,7 @@ app.get("/api/by-radicals", (req, res) => {
   const placeholders = parts.map(() => "?").join(",");
   const rows = db
     .prepare(`
-      SELECT kp.kanji_literal AS literal, k.meanings, k.freq
+      SELECT kp.kanji_literal AS literal, k.freq
       FROM kanji_parts kp JOIN kanji k ON k.literal = kp.kanji_literal
       WHERE kp.part IN (${placeholders})
       GROUP BY kp.kanji_literal
@@ -737,49 +878,80 @@ app.get("/api/by-radicals", (req, res) => {
 
   res.json({
     parts,
-    items: rows.map((r) => ({ literal: r.literal, meaning: snippet(r.meanings, 3) })),
+    items: rows.map((r) => ({ literal: r.literal, meaning: meaningText(r.literal, lang, 3) })),
   });
 });
 
 app.get("/credits", (req, res) => {
-  res.render("credits", { meta: META, ...PAGE_SEO.credits });
+  res.render("credits", { meta: META, ...pageSeo(res.locals.t, "credits") });
 });
 
 // ---------- sitemap + robots ----------
 
-let sitemapCache = null;
+const SITEMAP_STATIC = ["/", "/browse", "/radicals", "/about", "/privacy", "/credits"];
+const sitemapCache = new Map(); // key -> xml
+
+function buildSitemapIndex(base) {
+  const body = LANGS.map(
+    (l) => `  <sitemap><loc>${base}/sitemap-${l}.xml</loc></sitemap>`,
+  ).join("\n");
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    body +
+    "\n</sitemapindex>\n"
+  );
+}
+
+function buildSitemap(base, lang) {
+  const lp = lang === "en" ? "" : "/" + lang;
+  const kanji = db.prepare("SELECT literal FROM kanji ORDER BY (freq IS NULL), freq").all();
+  const words = HAS_DICT
+    ? db.prepare("SELECT DISTINCT word FROM example_words ORDER BY word").all()
+    : [];
+  const paths = [
+    ...SITEMAP_STATIC,
+    ...kanji.map((k) => `/kanji/${encodeURIComponent(k.literal)}`),
+    ...words.map((w) => `/word/${encodeURIComponent(w.word)}`),
+  ];
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    paths.map((p) => `  <url><loc>${base}${lp}${p}</loc></url>`).join("\n") +
+    "\n</urlset>\n"
+  );
+}
+
 app.get("/sitemap.xml", (req, res) => {
   const base = res.locals.siteUrl;
-  if (!sitemapCache || sitemapCache.base !== base) {
-    const staticPaths = ["/", "/browse", "/radicals", "/about", "/privacy", "/credits"];
-    const kanji = db.prepare("SELECT literal FROM kanji ORDER BY (freq IS NULL), freq").all();
-    // Only real dictionary headwords — skip unverified kanji combinations.
-    const words = HAS_DICT
-      ? db.prepare("SELECT DISTINCT word FROM example_words ORDER BY word").all()
-      : [];
-    const urls = [
-      ...staticPaths.map((p) => `${base}${p}`),
-      ...kanji.map((k) => `${base}/kanji/${encodeURIComponent(k.literal)}`),
-      ...words.map((w) => `${base}/word/${encodeURIComponent(w.word)}`),
-    ];
-    const xml =
-      '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-      urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n") +
-      "\n</urlset>\n";
-    sitemapCache = { base, xml };
-  }
-  res.type("application/xml").send(sitemapCache.xml);
+  const key = `index:${base}`;
+  if (!sitemapCache.has(key)) sitemapCache.set(key, buildSitemapIndex(base));
+  res.type("application/xml").send(sitemapCache.get(key));
+});
+
+app.get(/^\/sitemap-([a-z]{2})\.xml$/, (req, res, next) => {
+  const lang = req.params[0];
+  if (!isSupported(lang)) return next();
+  const base = res.locals.siteUrl;
+  const key = `${lang}:${base}`;
+  if (!sitemapCache.has(key)) sitemapCache.set(key, buildSitemap(base, lang));
+  res.type("application/xml").send(sitemapCache.get(key));
 });
 
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain").send(
-    `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /search\n\nSitemap: ${res.locals.siteUrl}/sitemap.xml\n`,
+    "User-agent: *\nAllow: /\n" +
+      "Disallow: /api/\nDisallow: /*/api/\nDisallow: /search\nDisallow: /*/search\n\n" +
+      `Sitemap: ${res.locals.siteUrl}/sitemap.xml\n`,
   );
 });
 
 app.use((req, res) => {
-  res.status(404).render("404", { message: "Page not found.", title: "Not found", noindex: true });
+  res.status(404).render("404", {
+    message: res.locals.t("notfound.page"),
+    title: res.locals.t("notfound.title"),
+    noindex: true,
+  });
 });
 
 const PORT = process.env.PORT || 3000;

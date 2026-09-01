@@ -1,31 +1,33 @@
 <%- include('partials/head', { pageClass: 'page-radicals' }) %>
 
-<h1 class="results-heading">Find a kanji by its parts</h1>
+<h1 class="results-heading"><%= t('radicals.heading') %></h1>
 
 <% if (!groups) { %>
-  <p class="note">
-    The radical picker needs the dictionary data. Run
-    <code>npm run pipeline:dictionary</code> and restart the server.
-  </p>
+  <p class="note"><%- t('radicals.need_data_html') %></p>
 <% } else { %>
   <p class="count">
-    Pick one or more components — results show kanji that contain <strong>all</strong> of them.
-    <a href="/browse">Browse by grade / strokes &rarr;</a>
+    <%- t('radicals.pick_note_html') %>
+    <a href="<%= lp %>/browse"><%= t('radicals.browse_link') %> &rarr;</a>
   </p>
 
   <div class="rad-selected" id="rad-selected" hidden>
-    <span>Selected:</span>
+    <span><%= t('radicals.selected') %></span>
     <span id="rad-selected-list"></span>
-    <button type="button" id="rad-clear">Clear</button>
+    <button type="button" id="rad-clear"><%= t('radicals.clear') %></button>
   </div>
 
-  <div class="rad-grid">
+  <div class="rad-grid" data-lang="<%= lang %>" data-lp="<%= lp %>"
+       data-s-begin="<%= t('radicals.select_to_begin') %>"
+       data-s-searching="<%= t('radicals.searching') %>"
+       data-s-matches="<%= t('radicals.matches') %>"
+       data-s-matches-capped="<%= t('radicals.matches_capped') %>"
+       data-s-none="<%= t('radicals.none') %>">
     <% groups.forEach(function (g) { %>
       <div class="rad-group">
         <span class="rad-strokes"><%= g.strokes != null ? g.strokes : '?' %></span>
         <div class="rad-parts">
           <% g.parts.forEach(function (p) { %>
-            <button type="button" class="rad-btn" data-part="<%= p.part %>" title="<%= p.count %> jōyō kanji"><%= p.display %></button>
+            <button type="button" class="rad-btn" data-part="<%= p.part %>" title="<%= t('radicals.btn_title', { n: p.count }) %>"><%= p.display %></button>
           <% }) %>
         </div>
       </div>
@@ -33,7 +35,7 @@
   </div>
 
   <div class="rad-results-wrap">
-    <p class="count" id="rad-count">Select a component to begin.</p>
+    <p class="count" id="rad-count"><%= t('radicals.select_to_begin') %></p>
     <ul class="result-grid" id="rad-results"></ul>
   </div>
 <% } %>

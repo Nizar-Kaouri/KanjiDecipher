@@ -9,6 +9,19 @@
   var selList = document.getElementById("rad-selected-list");
   var clearBtn = document.getElementById("rad-clear");
 
+  var LANG = grid.dataset.lang || "en";
+  var LP = grid.dataset.lp || "";
+  var S = {
+    begin: grid.dataset.sBegin || "",
+    searching: grid.dataset.sSearching || "",
+    matches: grid.dataset.sMatches || "{n} · {parts}",
+    matchesCapped: grid.dataset.sMatchesCapped || "{n}+ · {parts}",
+    none: grid.dataset.sNone || "",
+  };
+  function fill(tpl, n, parts) {
+    return tpl.replace("{n}", n).replace("{parts}", parts);
+  }
+
   var selected = []; // { part, display }
   var ctrl = null;
 
@@ -34,30 +47,33 @@
     renderSelected();
     if (!selected.length) {
       results.innerHTML = "";
-      count.textContent = "Select a component to begin.";
+      count.textContent = S.begin;
       return;
     }
     if (ctrl) ctrl.abort();
     ctrl = new AbortController();
-    count.textContent = "Searching…";
-    fetch("/api/by-radicals?parts=" + encodeURIComponent(parts().join(",")), { signal: ctrl.signal })
+    count.textContent = S.searching;
+    fetch(
+      "/api/by-radicals?lang=" + encodeURIComponent(LANG) +
+        "&parts=" + encodeURIComponent(parts().join(",")),
+      { signal: ctrl.signal },
+    )
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var items = data.items || [];
         results.innerHTML = items
           .map(function (k) {
             return (
-              '<li><a href="/kanji/' + encodeURIComponent(k.literal) + '">' +
+              '<li><a href="' + LP + '/kanji/' + encodeURIComponent(k.literal) + '">' +
               '<span class="glyph">' + esc(k.literal) + "</span>" +
               '<span class="gloss">' + esc(k.meaning) + "</span></a></li>"
             );
           })
           .join("");
-        count.textContent =
-          items.length +
-          (items.length >= 400 ? "+ " : " ") +
-          (items.length === 1 ? "kanji contains " : "kanji contain ") +
-          labels().join(" + ");
+        var joined = labels().join(" + ");
+        if (!items.length) count.textContent = fill(S.none, 0, joined);
+        else if (items.length >= 400) count.textContent = fill(S.matchesCapped, items.length, joined);
+        else count.textContent = fill(S.matches, items.length, joined);
       })
       .catch(function () {});
   }

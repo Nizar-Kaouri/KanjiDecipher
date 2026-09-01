@@ -4,11 +4,13 @@ DROP TABLE IF EXISTS kanji;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS readings;
 DROP TABLE IF EXISTS kanji_meanings;
+DROP TABLE IF EXISTS kanji_meanings_l10n;
 DROP TABLE IF EXISTS meanings_fts;
 DROP TABLE IF EXISTS meta;
 DROP TABLE IF EXISTS example_words;
 DROP TABLE IF EXISTS kanji_parts;
 DROP TABLE IF EXISTS radicals;
+DROP TABLE IF EXISTS origin_stories;
 
 CREATE TABLE kanji (
   literal                   TEXT PRIMARY KEY,
@@ -64,19 +66,46 @@ CREATE TABLE meta (
   value TEXT
 );
 
+-- ---- localisation (populated by 1-parse-kanjidic2 -> 3-build-db, and by
+--      4-generate-origin-stories --lang; empty for an English-only build) ----
+
+-- Per-language meaning arrays. English lives in kanji.meanings; this holds the
+-- other languages KANJIDIC2 ships (fr, es, pt). One row per (kanji, lang).
+CREATE TABLE kanji_meanings_l10n (
+  literal  TEXT NOT NULL REFERENCES kanji(literal),
+  lang     TEXT NOT NULL,          -- 'fr' | 'es' | 'pt' | ...
+  meanings TEXT NOT NULL,          -- JSON array of strings
+  PRIMARY KEY (literal, lang)
+);
+
+-- Translated / re-generated origin stories. English lives in kanji.origin_story;
+-- this holds one row per (kanji, non-English lang).
+CREATE TABLE origin_stories (
+  literal      TEXT NOT NULL REFERENCES kanji(literal),
+  lang         TEXT NOT NULL,
+  story        TEXT NOT NULL,
+  model        TEXT,
+  generated_at TEXT,
+  PRIMARY KEY (literal, lang)
+);
+
 -- ---- dictionary enrichment (populated by 5-parse-dictionary.js; empty otherwise) ----
 
 -- Common words that use a kanji (JMdict / jmdict-simplified).
+-- One row per (kanji, word, lang): the word/reading repeat across languages,
+-- only `gloss` differs. `lang` = 'en' for an English-only build.
 CREATE TABLE example_words (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   kanji_literal TEXT NOT NULL REFERENCES kanji(literal),
+  lang          TEXT NOT NULL DEFAULT 'en',
   word          TEXT NOT NULL,
   reading       TEXT NOT NULL,   -- kana
-  gloss         TEXT NOT NULL,   -- first 1-2 English senses
+  gloss         TEXT NOT NULL,   -- first 1-2 senses, in `lang`
   priority      INTEGER,         -- lower = more common
   order_index   INTEGER NOT NULL
 );
-CREATE INDEX idx_example_words_kanji ON example_words(kanji_literal);
+CREATE INDEX idx_example_words_kanji ON example_words(kanji_literal, lang);
+CREATE INDEX idx_example_words_word ON example_words(word, lang);
 
 -- Flat kanji -> visible components (KRADFILE). Parts may be non-kanji radicals.
 CREATE TABLE kanji_parts (

@@ -15,6 +15,9 @@ import zlib from "node:zlib";
 import { XMLParser } from "fast-xml-parser";
 import { ensureDirs, SOURCE_FILES, INTERMEDIATE_FILES } from "./lib/paths.js";
 
+// Non-English meaning languages KANJIDIC2 carries that the site also serves.
+const MEANING_LANGS = new Set(["fr", "es", "pt"]);
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -63,6 +66,9 @@ function parseCharacter(ch) {
   const onReadings = [];
   const kunReadings = [];
   const meanings = [];
+  // Non-English meanings KANJIDIC2 also ships (fr, es, pt). Kept separately so
+  // the site can serve them; English stays the primary `meanings` array.
+  const meaningsByLang = {};
   for (const group of asArray(ch.reading_meaning?.rmgroup)) {
     for (const r of asArray(group.reading)) {
       const type = r?.["@_r_type"];
@@ -72,9 +78,13 @@ function parseCharacter(ch) {
       else if (type === "ja_kun") kunReadings.push(value);
     }
     for (const m of asArray(group.meaning)) {
-      // English meanings have no m_lang attribute.
-      if (typeof m === "string") meanings.push(m);
-      else if (m && m["@_m_lang"] == null && m["#text"]) meanings.push(m["#text"]);
+      if (typeof m === "string") {
+        meanings.push(m); // English meanings have no m_lang attribute
+      } else if (m && m["#text"]) {
+        const l = m["@_m_lang"];
+        if (l == null) meanings.push(m["#text"]);
+        else if (MEANING_LANGS.has(l)) (meaningsByLang[l] ||= []).push(m["#text"]);
+      }
     }
   }
 
@@ -92,6 +102,9 @@ function parseCharacter(ch) {
     onReadings: [...new Set(onReadings)],
     kunReadings: [...new Set(kunReadings)],
     meanings: [...new Set(meanings)],
+    meaningsByLang: Object.fromEntries(
+      Object.entries(meaningsByLang).map(([l, v]) => [l, [...new Set(v)]]),
+    ),
     nanori,
   };
 }
@@ -144,6 +157,11 @@ function main() {
     console.warn(
       `  WARNING: expected ~2,136 jōyō kanji, got ${out.length}. Check the grade filter / source file.`,
     );
+  }
+
+  for (const l of MEANING_LANGS) {
+    const n = out.filter((k) => (k.meaningsByLang[l] ?? []).length).length;
+    console.log(`  ${l}: ${n}/${out.length} kanji have a native meaning`);
   }
 
   const noMeaning = out.filter((k) => k.meanings.length === 0);

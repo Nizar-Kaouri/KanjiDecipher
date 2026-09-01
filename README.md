@@ -106,11 +106,13 @@ pipeline/
   lib/                    db, kana, formation heuristic, SVG builder, unzip, radicals
 web/
   server.js               Express + node:sqlite (read-only), EJS views
+  i18n.js                 locale catalogs + t() helper + /xx prefix regex
+  locales/                en.json (source of truth) + fr/es/pt/de.json
   gen-icons.js            one-off: build the PWA / touch icons  (npm run icons)
   views/                  home, results, kanji, word, browse, radicals, credits, about, privacy, 404
   views/partials/         head, foot, kanji-chip
-  public/                 styles.css, theme.js, suggest.js, home.js, radicals.js,
-                          stroke-anim.js, sw.js, manifest.webmanifest, icons/
+  public/                 styles.css, theme.js, lang.js, suggest.js, home.js,
+                          radicals.js, stroke-anim.js, sw.js, manifest.webmanifest, icons/
 ```
 
 ### Database (`data/kanji.db`)
@@ -190,6 +192,42 @@ No ad network is integrated and there are no ad slots in the markup. The
 **privacy policy** (`/privacy`) still notes that AdSense *would* introduce
 cookie-based tracking if it were added later — update or drop that "Advertising"
 section depending on what you decide.
+
+## Languages (framework)
+
+The site can serve **English (default), French, Spanish, Portuguese, German**.
+Non-English languages get a URL prefix: `/fr/kanji/水`, `/es/browse`, … English
+has no prefix. A header dropdown (`public/lang.js`) rewrites the current path,
+sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
+
+- **UI strings** live in `web/locales/<lang>.json` (flat key → string). `en.json`
+  is the source of truth; any missing/empty key in another language falls back to
+  English, then to the key name. Views call `t('key', { vars })` (`res.locals.t`,
+  bound to the request language). All five catalogs are **fully translated** —
+  chrome, buttons, SEO meta, and the about / privacy / credits prose.
+- **Kanji meanings** — `1-parse-kanjidic2.js` captures the French / Spanish /
+  Portuguese meanings KANJIDIC2 ships (fr 1987 / es 2063 / pt 1939 of 2136;
+  German has none → English). `3-build-db.js` stores them in
+  `kanji_meanings_l10n`; `meaningsOf(literal, lang)` falls back to English
+  per-kanji. **Live.**
+- **Example-word glosses** — `5-parse-dictionary.js` pulls the JMdict `fre` /
+  `spa` / `ger` editions and fills `example_words` with a `lang` column (fr
+  10.5k / es 10.4k / de 13.9k translated rows; no Portuguese edition → English).
+  `exampleWordsFor()` keeps the English word selection and swaps each gloss for
+  its translation where one exists. **Live.**
+- **Meaning search** still matches English glosses only (the result *cards* are
+  localised). Per-language meaning search is a later step.
+- **Origin stories** — `origin_stories(literal, lang, …)` holds translated
+  stories; until one exists the English text shows with a note. Generating them
+  needs an LLM batch (`4-generate-origin-stories.js` would take a `--lang` flag)
+  — not done.
+- **SEO** — `<html lang>`, per-language `hreflang` alternates + `x-default`,
+  language-prefixed `canonical`, and a **sitemap index** (`/sitemap.xml`) over
+  per-language `/sitemap-<lang>.xml`.
+
+Run order for the language data: `npm run pipeline:download` (fetches the JMdict
+fr/es/de editions too) → `pipeline:kanjidic` → `pipeline:build` → `pipeline:dictionary`.
+The data layer still degrades cleanly on an English-only DB.
 
 ## SEO, PWA & legal pages
 

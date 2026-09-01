@@ -120,10 +120,40 @@ input, select, textarea { font-size: 16px; }
   .search button { padding: 11px 16px; }
 }
 
-/* theme toggle */
-.theme-toggle {
+/* header tools: language switch + theme toggle */
+.header-tools {
   order: 3;
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+  overflow: hidden; white-space: nowrap;
+}
+.lang-switch { display: inline-flex; }
+.lang-switch select {
+  height: 38px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .9rem;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23888' stroke-width='1.5'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.lang-switch select:hover { color: var(--text); border-color: var(--accent); }
+
+.theme-toggle {
   flex: none;
   width: 38px;
   height: 38px;

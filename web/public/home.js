@@ -4,6 +4,9 @@
   var grid = document.getElementById("featured-grid");
   if (!btn || !grid) return;
 
+  var LANG = document.documentElement.lang || "en";
+  var LP = ["fr", "es", "pt", "de"].indexOf(LANG) >= 0 ? "/" + LANG : "";
+
   function esc(s) {
     var d = document.createElement("div");
     d.textContent = s == null ? "" : String(s);
@@ -12,7 +15,7 @@
 
   btn.addEventListener("click", function () {
     btn.disabled = true;
-    fetch("/api/random?n=12")
+    fetch("/api/random?n=12&lang=" + encodeURIComponent(LANG))
       .then(function (r) {
         return r.json();
       })
@@ -20,7 +23,7 @@
         grid.innerHTML = (data.items || [])
           .map(function (k) {
             return (
-              '<li><a href="/kanji/' +
+              '<li><a href="' + LP + '/kanji/' +
               encodeURIComponent(k.literal) +
               '"><span class="glyph">' +
               esc(k.literal) +

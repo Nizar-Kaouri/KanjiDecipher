@@ -8,44 +8,40 @@
   </div>
 
   <div class="hero-inner">
-    <h1>Where kanji shapes come from</h1>
-    <p class="lede">
-      Search any of the <%= meta.kanji_count %> jōyō kanji to see how it breaks into
-      parts, what it means, how it&rsquo;s read, its stroke order, and a short
-      plain-language account of how the shape came to carry the meaning.
-    </p>
+    <h1><%= t('home.h1') %></h1>
+    <p class="lede"><%= t('home.lede', { count: meta.kanji_count }) %></p>
 
-    <form class="search hero-search" action="/search" method="get" role="search" autocomplete="off">
-      <input type="search" name="q" placeholder="Try a kanji, an English word, or a reading…" aria-label="Search kanji">
-      <button type="submit">Search</button>
+    <form class="search hero-search" action="<%= lp %>/search" method="get" role="search" autocomplete="off">
+      <input type="search" name="q" placeholder="<%= t('search.placeholder_hero') %>" aria-label="<%= t('search.aria_hero') %>">
+      <button type="submit"><%= t('search.button') %></button>
     </form>
 
     <p class="examples">
-      <a href="/kanji/%E6%B0%B4">水</a>
-      <a href="/kanji/%E6%B8%85">清</a>
-      <a href="/kanji/%E6%98%8E">明</a>
-      <a href="/search?q=river">river</a>
-      <a href="/search?q=kawa">kawa</a>
-      <a class="surprise" href="/random">Surprise me &rarr;</a>
+      <a href="<%= lp %>/kanji/%E6%B0%B4">水</a>
+      <a href="<%= lp %>/kanji/%E6%B8%85">清</a>
+      <a href="<%= lp %>/kanji/%E6%98%8E">明</a>
+      <a href="<%= lp %>/search?q=<%= encodeURIComponent(t('home.example_meaning')) %>"><%= t('home.example_meaning') %></a>
+      <a href="<%= lp %>/search?q=<%= encodeURIComponent(t('home.example_reading')) %>"><%= t('home.example_reading') %></a>
+      <a class="surprise" href="<%= lp %>/random"><%= t('home.surprise') %> &rarr;</a>
     </p>
   </div>
 </section>
 
 <section class="explore">
   <div class="explore-head">
-    <h2>Start exploring</h2>
+    <h2><%= t('home.explore_h2') %></h2>
     <div class="explore-actions">
-      <a href="/browse">Browse all <%= meta.kanji_count %> &rarr;</a>
-      <a href="/radicals">Find by radical &rarr;</a>
-      <button type="button" class="reshuffle" data-reshuffle aria-label="Show a different set of kanji">
-        Shuffle <span aria-hidden="true">&#8635;</span>
+      <a href="<%= lp %>/browse"><%= t('home.browse_all', { count: meta.kanji_count }) %> &rarr;</a>
+      <a href="<%= lp %>/radicals"><%= t('home.find_radical') %> &rarr;</a>
+      <button type="button" class="reshuffle" data-reshuffle aria-label="<%= t('home.shuffle_aria') %>">
+        <%= t('home.shuffle') %> <span aria-hidden="true">&#8635;</span>
       </button>
     </div>
   </div>
   <ul class="featured-grid" id="featured-grid">
     <% featured.forEach(function (k) { %>
       <li>
-        <a href="/kanji/<%= encodeURIComponent(k.literal) %>">
+        <a href="<%= lp %>/kanji/<%= encodeURIComponent(k.literal) %>">
           <span class="glyph"><%= k.literal %></span>
           <span class="gloss"><%= k.meaning %></span>
         </a>

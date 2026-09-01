@@ -13,10 +13,12 @@ KanjiVG
   https://creativecommons.org/licenses/by-sa/3.0/
 
 KANJIDIC2
-  Kanji meanings, on'yomi / kun'yomi readings, stroke counts, radical numbers,
-  grade and frequency data.
+  Kanji meanings (English, French, Spanish and Portuguese), on'yomi / kun'yomi
+  readings, stroke counts, radical numbers, grade and frequency data.
   Copyright (C) The Electronic Dictionary Research and Development Group (EDRDG),
-  Monash University. Compiled originally by Jim Breen.
+  Monash University. Compiled originally by Jim Breen. The French, Spanish and
+  Portuguese meanings are contributed translation sets distributed within
+  KANJIDIC2.
   Licensed under Creative Commons Attribution-ShareAlike 4.0.
   https://www.edrdg.org/wiki/index.php/KANJIDIC_Project
   https://creativecommons.org/licenses/by-sa/4.0/
@@ -26,8 +28,11 @@ KANJIDIC2
 
 JMdict
   Example words (jukugo) shown on each kanji page, with readings and glosses.
+  English glosses from the JMdict "eng-common" edition; French, Spanish and
+  German glosses from the JMdict "fre", "spa" and "ger" editions.
   Copyright (C) The Electronic Dictionary Research and Development Group (EDRDG),
-  Monash University. Compiled originally by Jim Breen.
+  Monash University. Compiled originally by Jim Breen. The German glosses derive
+  from WaDoku (Ulrich Apel and contributors), redistributed via JMdict.
   Licensed under Creative Commons Attribution-ShareAlike 4.0.
   https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project
 

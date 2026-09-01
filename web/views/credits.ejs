@@ -1,76 +1,61 @@
 <%- include('partials/head', { pageClass: 'page-credits' }) %>
 
-<h1>Credits &amp; licences</h1>
-<p>
-  <%= SITE_NAME %> is built entirely from freely-licensed data. Because KanjiVG is
-  share-alike (CC BY-SA), this site&rsquo;s derived database and pages are offered
-  under <strong>CC BY-SA</strong> as well.
-</p>
+<h1><%= t('credits.title') %></h1>
+<p><%- t('credits.intro_html', { site: SITE_NAME }) %></p>
 
 <section class="credit">
   <h2>KanjiVG</h2>
-  <p>Stroke-order paths and component / radical decomposition.</p>
+  <p><%= t('credits.kanjivg_desc') %></p>
   <dl>
-    <div><dt>Author</dt><dd><%= meta.kanjivg_attribution %></dd></div>
-    <div><dt>Licence</dt><dd><%= meta.kanjivg_license %></dd></div>
-    <div><dt>Source</dt><dd><a href="https://github.com/KanjiVG/kanjivg">github.com/KanjiVG/kanjivg</a></dd></div>
+    <div><dt><%= t('credits.field_author') %></dt><dd><%= meta.kanjivg_attribution %></dd></div>
+    <div><dt><%= t('credits.field_licence') %></dt><dd><%= meta.kanjivg_license %></dd></div>
+    <div><dt><%= t('credits.field_source') %></dt><dd><a href="https://github.com/KanjiVG/kanjivg">github.com/KanjiVG/kanjivg</a></dd></div>
   </dl>
 </section>
 
 <section class="credit">
   <h2>KANJIDIC2</h2>
-  <p>Meanings, on&rsquo;yomi / kun&rsquo;yomi readings, stroke counts, radical numbers, grade and frequency.</p>
+  <p><%= t('credits.kanjidic_desc') %></p>
   <dl>
-    <div><dt>Publisher</dt><dd><%= meta.kanjidic2_attribution %> (Electronic Dictionary Research and Development Group)</dd></div>
-    <div><dt>Licence</dt><dd><%= meta.kanjidic2_license %></dd></div>
-    <div><dt>Version</dt><dd>file <%= meta.kanjidic2_file_version %>, database <%= meta.kanjidic2_database_version %></dd></div>
-    <div><dt>Source</dt><dd><a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">edrdg.org — KANJIDIC Project</a></dd></div>
+    <div><dt><%= t('credits.field_publisher') %></dt><dd><%= meta.kanjidic2_attribution %> (Electronic Dictionary Research and Development Group)</dd></div>
+    <div><dt><%= t('credits.field_licence') %></dt><dd><%= meta.kanjidic2_license %></dd></div>
+    <div><dt><%= t('credits.field_version') %></dt><dd><%= t('credits.kanjidic_version', { file: meta.kanjidic2_file_version, db: meta.kanjidic2_database_version }) %></dd></div>
+    <div><dt><%= t('credits.field_source') %></dt><dd><a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project">edrdg.org — KANJIDIC Project</a></dd></div>
   </dl>
-  <p class="note">
-    The SKIP code field in KANJIDIC2 is licensed CC BY-NC-SA (non-commercial) and
-    is deliberately <strong>not used</strong> anywhere in this project.
-  </p>
+  <p class="note"><%- t('credits.kanjidic_skip_note_html') %></p>
 </section>
 
 <section class="credit">
   <h2>JMdict</h2>
-  <p>Example words (jukugo) — the common words shown on each kanji page, with readings and glosses.</p>
+  <p><%= t('credits.jmdict_desc') %></p>
   <dl>
-    <div><dt>Publisher</dt><dd><%= meta.jmdict_attribution || 'EDRDG / Jim Breen' %> (Electronic Dictionary Research and Development Group)</dd></div>
-    <div><dt>Licence</dt><dd><%= meta.jmdict_license || 'CC BY-SA 4.0' %></dd></div>
-    <% if (meta.jmdict_date) { %><div><dt>Version</dt><dd><%= meta.jmdict_date %> (common-words subset)</dd></div><% } %>
-    <div><dt>Source</dt><dd><a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">edrdg.org — JMdict/EDICT</a></dd></div>
+    <div><dt><%= t('credits.field_publisher') %></dt><dd><%= meta.jmdict_attribution || 'EDRDG / Jim Breen' %> (Electronic Dictionary Research and Development Group)</dd></div>
+    <div><dt><%= t('credits.field_licence') %></dt><dd><%= meta.jmdict_license || 'CC BY-SA 4.0' %></dd></div>
+    <% if (meta.jmdict_date) { %><div><dt><%= t('credits.field_version') %></dt><dd><%= t('credits.jmdict_version', { date: meta.jmdict_date }) %></dd></div><% } %>
+    <div><dt><%= t('credits.field_source') %></dt><dd><a href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project">edrdg.org — JMdict/EDICT</a></dd></div>
   </dl>
 </section>
 
 <section class="credit">
   <h2>KRADFILE / RADKFILE</h2>
-  <p>Kanji ↔ component decomposition — powers the radical picker and the &ldquo;shares components&rdquo; links.</p>
+  <p><%= t('credits.krad_desc') %></p>
   <dl>
-    <div><dt>Author</dt><dd><%= meta.krad_attribution || 'James Breen / EDRDG' %></dd></div>
-    <div><dt>Licence</dt><dd><%= meta.krad_license || 'CC BY-SA 3.0' %></dd></div>
-    <div><dt>Source</dt><dd><a href="https://www.edrdg.org/krad/kradinf.html">edrdg.org — RADKFILE/KRADFILE</a></dd></div>
+    <div><dt><%= t('credits.field_author') %></dt><dd><%= meta.krad_attribution || 'James Breen / EDRDG' %></dd></div>
+    <div><dt><%= t('credits.field_licence') %></dt><dd><%= meta.krad_license || 'CC BY-SA 3.0' %></dd></div>
+    <div><dt><%= t('credits.field_source') %></dt><dd><a href="https://www.edrdg.org/krad/kradinf.html">edrdg.org — RADKFILE/KRADFILE</a></dd></div>
   </dl>
-  <p class="note">
-    JMdict, KRADFILE and RADKFILE are used here via the JSON conversion published by
-    <a href="https://github.com/scriptin/jmdict-simplified">jmdict-simplified</a> (scriptin).
-  </p>
+  <p class="note"><%- t('credits.krad_note_html') %></p>
 </section>
 
 <section class="credit">
-  <h2>Origin stories</h2>
-  <p>
-    The plain-language origin explanations are generated by Anthropic&rsquo;s Claude
-    (Haiku) from the component and meaning data above. They are convenience
-    summaries, not scholarship, and may be wrong — each page marks whether its
-    story has been human-reviewed.
-  </p>
+  <h2><%= t('credits.origin_title') %></h2>
+  <p><%= t('credits.origin_desc') %></p>
 </section>
 
 <section class="credit">
-  <h2>Other</h2>
-  <p><a href="https://github.com/WaniKani/WanaKana">WanaKana</a> (MIT) converts romaji search input to kana.</p>
-  <p>Database built <%= meta.build_timestamp %>.</p>
+  <h2><%= t('credits.other_title') %></h2>
+  <p><%- t('credits.wanakana_html') %></p>
+  <p><%= t('credits.build_line', { timestamp: meta.build_timestamp }) %></p>
 </section>
 
 <%- include('partials/foot', { pageClass: 'page-credits' }) %>

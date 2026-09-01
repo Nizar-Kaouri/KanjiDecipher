@@ -57,7 +57,7 @@ function main() {
         .all()) {
         preservedStories.set(r.literal, r);
       }
-      for (const t of ["example_words", "kanji_parts", "radicals"]) {
+      for (const t of ["example_words", "kanji_parts", "radicals", "origin_stories"]) {
         try {
           preservedDict[t] = old.prepare(`SELECT * FROM ${t}`).all();
         } catch {
@@ -108,6 +108,8 @@ function main() {
     INSERT INTO readings (reading_kana, reading_type, kanji_literal) VALUES (?, ?, ?)`);
   const insMeaning = db.prepare(`
     INSERT INTO kanji_meanings (kanji_literal, meaning, meaning_lc) VALUES (?, ?, ?)`);
+  const insMeaningL10n = db.prepare(`
+    INSERT INTO kanji_meanings_l10n (literal, lang, meanings) VALUES (?, ?, ?)`);
   const insFts = fts
     ? db.prepare("INSERT INTO meanings_fts (kanji_literal, meaning) VALUES (?, ?)")
     : null;
@@ -186,6 +188,10 @@ function main() {
     for (const m of k.meanings ?? []) {
       insMeaning.run(k.literal, m, m.toLowerCase());
       if (insFts) insFts.run(k.literal, m);
+    }
+
+    for (const [lang, list] of Object.entries(k.meaningsByLang ?? {})) {
+      if (list?.length) insMeaningL10n.run(k.literal, lang, JSON.stringify(list));
     }
   }
   db.exec("COMMIT");

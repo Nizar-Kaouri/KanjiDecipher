@@ -1,8 +1,8 @@
 <%
   function gradeLabel(g) {
-    if (g >= 1 && g <= 6) return 'Grade ' + g + ' (Kyōiku)';
-    if (g === 8) return 'Jōyō (secondary school)';
-    return 'Grade ' + g;
+    if (g >= 1 && g <= 6) return t('grade.kyoiku', { n: g });
+    if (g === 8) return t('grade.secondary');
+    return t('grade.plain', { n: g });
   }
   function chipRow(label, items) { %>
     <div class="related-row">
@@ -20,30 +20,30 @@
   <div class="kd-hero">
     <div class="kd-info">
       <section class="kd-meanings">
-        <h2>Meaning &amp; readings</h2>
-        <p class="meanings"><%= kanji.meanings.join(', ') || '—' %></p>
+        <h2><%= t('kanji.meaning_readings') %></h2>
+        <p class="meanings"><%= kanji.meanings.join(', ') || t('kanji.meanings_dash') %></p>
         <div class="readings">
           <% if (kanji.on_readings.length) { %>
-            <div><span class="rlabel">On&rsquo;yomi</span> <span class="kana"><%= kanji.on_readings.join('、') %></span></div>
+            <div><span class="rlabel"><%= t('kanji.onyomi') %></span> <span class="kana"><%= kanji.on_readings.join('、') %></span></div>
           <% } %>
           <% if (kanji.kun_readings.length) { %>
-            <div><span class="rlabel">Kun&rsquo;yomi</span> <span class="kana"><%= kanji.kun_readings.join('、') %></span></div>
+            <div><span class="rlabel"><%= t('kanji.kunyomi') %></span> <span class="kana"><%= kanji.kun_readings.join('、') %></span></div>
           <% } %>
           <% if (kanji.nanori.length) { %>
-            <div><span class="rlabel">Nanori</span> <span class="kana muted"><%= kanji.nanori.join('、') %></span></div>
+            <div><span class="rlabel"><%= t('kanji.nanori') %></span> <span class="kana muted"><%= kanji.nanori.join('、') %></span></div>
           <% } %>
         </div>
       </section>
 
       <section class="kd-origin">
-        <h2>Origin</h2>
+        <h2><%= t('kanji.origin') %></h2>
         <% if (kanji.origin_story) { %>
           <p class="origin-text"><%- linkifyKanji(kanji.origin_story) %></p>
+          <% if (kanji.originIsFallback) { %>
+            <p class="origin-tag muted"><%= t('kanji.origin_fallback_note', { lang: langLabel }) %></p>
+          <% } %>
         <% } else { %>
-          <p class="origin-text muted">
-            No origin story yet. Run <code>node pipeline/4-generate-origin-stories.js --only <%= kanji.literal %></code>
-            to generate one.
-          </p>
+          <p class="origin-text muted"><%= t('kanji.no_story') %></p>
         <% } %>
       </section>
     </div>
@@ -55,38 +55,35 @@
           <div class="sv-static" hidden><%- kanji.svg_static %></div>
         </div>
         <div class="stroke-controls">
-          <button type="button" data-act="play">▶&nbsp;Play</button>
-          <button type="button" data-act="step">Step</button>
-          <button type="button" data-act="reset">Reset</button>
-          <button type="button" data-act="toggle">Numbered</button>
+          <button type="button" data-act="play">&#9654;&nbsp;<%= t('kanji.stroke_play') %></button>
+          <button type="button" data-act="step"><%= t('kanji.stroke_step') %></button>
+          <button type="button" data-act="reset"><%= t('kanji.stroke_reset') %></button>
+          <button type="button" data-act="toggle"><%= t('kanji.stroke_numbered') %></button>
         </div>
         <figcaption class="kanji-card-cap">
           <span class="cc-char"><%= kanji.literal %></span>
-          <span class="cc-count"><%= kanji.stroke_count %> strokes</span>
+          <span class="cc-count"><%= t('kanji.strokes_count', { n: kanji.stroke_count }) %></span>
         </figcaption>
       </figure>
 
       <section class="kd-components">
-        <h2>Components</h2>
+        <h2><%= t('kanji.components') %></h2>
         <% if (kanji.components.length <= 1) { %>
-          <p class="note">This character is treated as a single, undivided shape<%= kanji.components.length ? ' (' + kanji.components[0].element + ')' : '' %>.</p>
+          <p class="note"><%= t('kanji.single_shape', { paren: kanji.components.length ? ' (' + kanji.components[0].element + ')' : '' }) %></p>
         <% } %>
         <ul class="component-list">
           <% kanji.components.forEach(function (c, i) { %>
-            <li class="component role-<%= c.role.replace(/\s+/g,'-') %>" data-component="<%= i %>">
+            <li class="component role-<%= c.roleKey %>" data-component="<%= i %>">
               <span class="c-glyph"><%- linkifyKanji(c.element) %></span>
               <span class="c-meta">
-                <span class="c-role"><%= c.role %></span>
-                <% if (c.positionLabel) { %><span class="c-pos"><%= c.positionLabel %></span><% } %>
+                <span class="c-role"><%= t('role.' + c.roleKey) %></span>
+                <% if (c.position) { %><span class="c-pos"><%= t('position.' + c.position) %></span><% } %>
               </span>
             </li>
           <% }) %>
         </ul>
-        <% if (kanji.components.some(c => c.isPhonetic)) { %>
-          <p class="phon-note">
-            A <strong>sound hint</strong> component points at the character&rsquo;s pronunciation,
-            not its meaning — don&rsquo;t read a meaning into it.
-          </p>
+        <% if (kanji.components.some(function (c) { return c.isPhonetic; })) { %>
+          <p class="phon-note"><%- t('kanji.sound_hint_note_html') %></p>
         <% } %>
       </section>
     </div>
@@ -94,11 +91,11 @@
 
   <% if (kanji.exampleWords && kanji.exampleWords.length) { %>
     <section class="kd-block kd-words">
-      <h2>Common words</h2>
+      <h2><%= t('kanji.common_words') %></h2>
       <ul class="word-list">
         <% kanji.exampleWords.forEach(function (w) { %>
           <li>
-            <a class="wl-word" href="/word/<%= encodeURIComponent(w.word) %>" lang="ja"><%= w.word %></a>
+            <a class="wl-word" href="<%= lp %>/word/<%= encodeURIComponent(w.word) %>" lang="ja"><%= w.word %></a>
             <span class="wl-reading kana"><%= w.reading %></span>
             <span class="wl-gloss"><%= w.gloss %></span>
           </li>
@@ -110,29 +107,29 @@
   <%
     var relRows = [];
     if (kanji.samePhonetic && kanji.samePhonetic.length)
-      relRows.push(['Same sound component ' + kanji.samePhoneticLabels.join(' '), kanji.samePhonetic]);
+      relRows.push([t('kanji.same_sound', { parts: kanji.samePhoneticLabels.join(' ') }), kanji.samePhonetic]);
     if (kanji.sameRadical && kanji.sameRadical.length)
-      relRows.push(['Same radical', kanji.sameRadical]);
+      relRows.push([t('kanji.same_radical'), kanji.sameRadical]);
     if (kanji.sharesComponents && kanji.sharesComponents.length)
-      relRows.push(['Shares components', kanji.sharesComponents]);
+      relRows.push([t('kanji.shares_components'), kanji.sharesComponents]);
   %>
   <% if (relRows.length) { %>
     <section class="kd-block kd-related">
-      <h2>Related kanji</h2>
+      <h2><%= t('kanji.related') %></h2>
       <% relRows.forEach(function (r) { chipRow(r[0], r[1]); }) %>
     </section>
   <% } %>
 
   <section class="kd-block kd-facts">
-    <h2>Reference</h2>
+    <h2><%= t('kanji.reference') %></h2>
     <dl>
-      <div><dt>Strokes</dt><dd><%= kanji.stroke_count ?? '—' %></dd></div>
-      <div><dt>Kangxi radical</dt><dd><%= kanji.radical_number ?? '—' %></dd></div>
-      <div><dt>Formation type</dt><dd><%= kanji.formation_label ?? '—' %></dd></div>
-      <div><dt>Grade</dt><dd><%= kanji.grade ? gradeLabel(kanji.grade) : '—' %></dd></div>
-      <div><dt>Frequency rank</dt><dd><%= kanji.freq ? '#' + kanji.freq + ' (newspapers)' : '—' %></dd></div>
-      <div><dt>Former JLPT</dt><dd><%= kanji.jlpt ? 'level ' + kanji.jlpt : '—' %></dd></div>
-      <div><dt>Unicode</dt><dd><%= kanji.codepoint ?? '—' %></dd></div>
+      <div><dt><%= t('kanji.ref_strokes') %></dt><dd><%= kanji.stroke_count ?? t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_kangxi') %></dt><dd><%= kanji.radical_number ?? t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_formation') %></dt><dd><%= kanji.formation_type ? t('formation.' + kanji.formation_type) : t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_grade') %></dt><dd><%= kanji.grade ? gradeLabel(kanji.grade) : t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_freq') %></dt><dd><%= kanji.freq ? t('kanji.ref_freq_value', { n: kanji.freq }) : t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_jlpt') %></dt><dd><%= kanji.jlpt ? t('kanji.ref_jlpt_value', { n: kanji.jlpt }) : t('kanji.meanings_dash') %></dd></div>
+      <div><dt><%= t('kanji.ref_unicode') %></dt><dd><%= kanji.codepoint ?? t('kanji.meanings_dash') %></dd></div>
     </dl>
   </section>
 

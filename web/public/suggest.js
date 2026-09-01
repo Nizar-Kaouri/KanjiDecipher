@@ -6,6 +6,8 @@
   var forms = document.querySelectorAll("form.search");
   if (!forms.length) return;
 
+  var LANG = document.documentElement.lang || "en";
+
   function esc(s) {
     var d = document.createElement("div");
     d.textContent = s == null ? "" : String(s);
@@ -93,7 +95,7 @@
     function load(q) {
       if (ctrl) ctrl.abort();
       ctrl = new AbortController();
-      fetch("/api/suggest?q=" + encodeURIComponent(q), { signal: ctrl.signal })
+      fetch("/api/suggest?lang=" + encodeURIComponent(LANG) + "&q=" + encodeURIComponent(q), { signal: ctrl.signal })
         .then(function (r) {
           return r.json();
         })

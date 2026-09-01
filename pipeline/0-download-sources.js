@@ -33,6 +33,10 @@ const JMDICT_SIMPLIFIED_API =
 // jmdict-simplified assets we want, keyed by SOURCE_FILES name -> asset-name regex.
 const JMDICT_SIMPLIFIED_ASSETS = [
   ["jmdict", /^jmdict-eng-common-.*\.json\.zip$/],
+  // Full editions for translated example-word glosses (no "-common" variant).
+  ["jmdictFre", /^jmdict-fre-\d.*\.json\.zip$/],
+  ["jmdictSpa", /^jmdict-spa-\d.*\.json\.zip$/],
+  ["jmdictGer", /^jmdict-ger-\d.*\.json\.zip$/],
   ["kradfile", /^kradfile-.*\.json\.zip$/],
   ["radkfile", /^radkfile-.*\.json\.zip$/],
 ];
@@ -141,9 +145,12 @@ async function main() {
     });
   }
 
-  console.log("\nJMdict + KRADFILE + RADKFILE (words, components — via jmdict-simplified)");
+  console.log("\nJMdict (en/fr/es/de) + KRADFILE + RADKFILE (words, components — via jmdict-simplified)");
   const needJmdict = [
     SOURCE_FILES.jmdict,
+    SOURCE_FILES.jmdictFre,
+    SOURCE_FILES.jmdictSpa,
+    SOURCE_FILES.jmdictGer,
     SOURCE_FILES.kradfile,
     SOURCE_FILES.radkfile,
   ].some((f) => !(fs.existsSync(f) && fs.statSync(f).size > 0));

@@ -5,12 +5,13 @@
  *   so any kanji page you've already opened works without a connection
  * Not offline-first: a page you've never visited still needs the network.
  */
-const CACHE = "kd-v3";
+const CACHE = "kd-v4";
 
 const PRECACHE = [
   "/",
   "/styles.css",
   "/theme.js",
+  "/lang.js",
   "/suggest.js",
   "/stroke-anim.js",
   "/home.js",
@@ -41,7 +42,8 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-const NEVER_CACHE = ["/api/", "/search", "/sitemap.xml", "/robots.txt", "/sw.js"];
+// Matches /search and /api/... whether or not a /xx language prefix is present.
+const NEVER_CACHE_RE = /^\/(?:[a-z]{2}\/)?(?:api\/|search$|search\?)|^\/(?:sitemap[\w-]*\.xml|robots\.txt|sw\.js)$/;
 const STATIC_RE = /\.(?:css|js|png|svg|ico|webmanifest|woff2?)$/;
 
 self.addEventListener("fetch", (event) => {
@@ -50,7 +52,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (NEVER_CACHE.some((p) => url.pathname.startsWith(p))) return;
+  if (NEVER_CACHE_RE.test(url.pathname + url.search)) return;
 
   // Static assets — cache-first, revalidate in the background.
   if (STATIC_RE.test(url.pathname) || url.pathname.startsWith("/icons/")) {

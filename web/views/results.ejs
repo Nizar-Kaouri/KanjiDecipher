@@ -1,12 +1,12 @@
 <%- include('partials/head', { pageClass: 'page-results' }) %>
 
-<h1 class="results-heading">Results for &ldquo;<%= search.query %>&rdquo;</h1>
+<h1 class="results-heading"><%= t('results.heading', { q: search.query }) %></h1>
 
 <% function grid(items) { %>
   <ul class="result-grid">
     <% items.forEach(function (r) { %>
       <li>
-        <a href="/kanji/<%= encodeURIComponent(r.literal) %>">
+        <a href="<%= lp %>/kanji/<%= encodeURIComponent(r.literal) %>">
           <span class="glyph"><%= r.literal %></span>
           <span class="gloss"><%= r.meaning %></span>
         </a>
@@ -16,19 +16,16 @@
 <% } %>
 
 <% if (total === 0) { %>
-  <p class="empty">
-    Nothing matched &ldquo;<%= search.query %>&rdquo;. Try an English word, a kanji character,
-    or a reading in romaji or kana.
-  </p>
+  <p class="empty"><%= t('results.nothing', { q: search.query }) %></p>
 <% } %>
 
 <% if (search.words && search.words.length) { %>
   <section class="result-section">
-    <h2>Words</h2>
+    <h2><%= t('results.words') %></h2>
     <ul class="result-grid">
       <% search.words.forEach(function (w) { %>
         <li>
-          <a href="/word/<%= encodeURIComponent(w.word) %>">
+          <a href="<%= lp %>/word/<%= encodeURIComponent(w.word) %>">
             <span class="glyph" lang="ja"><%= w.word %></span>
             <span class="gloss"><%= w.gloss %></span>
           </a>
@@ -40,24 +37,24 @@
 
 <% if (search.direct.length) { %>
   <section class="result-section">
-    <h2>Kanji you typed</h2>
+    <h2><%= t('results.kanji_you_typed') %></h2>
     <% grid(search.direct) %>
   </section>
 <% } %>
 
 <% if (search.meaning.length) { %>
   <section class="result-section">
-    <h2>By meaning</h2>
+    <h2><%= t('results.by_meaning') %></h2>
     <% grid(search.meaning) %>
-    <% if (search.meaning.length >= 120) { %><p class="count">showing first 120</p><% } %>
+    <% if (search.meaning.length >= 120) { %><p class="count"><%= t('results.showing_first', { n: 120 }) %></p><% } %>
   </section>
 <% } %>
 
 <% if (search.reading.length) { %>
   <section class="result-section">
-    <h2>Read as <span class="kana">&ldquo;<%= search.readingKana %>&rdquo;</span></h2>
+    <h2><%= t('results.read_as') %> <span class="kana">&ldquo;<%= search.readingKana %>&rdquo;</span></h2>
     <% grid(search.reading) %>
-    <% if (search.reading.length >= 150) { %><p class="count">showing first 150</p><% } %>
+    <% if (search.reading.length >= 150) { %><p class="count"><%= t('results.showing_first', { n: 150 }) %></p><% } %>
   </section>
 <% } %>
 

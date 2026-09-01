@@ -13,11 +13,42 @@
  */
 import fs from "node:fs";
 import { openDb } from "./lib/db.js";
-import { DB_PATH, SOURCE_FILES } from "./lib/paths.js";
+import {
+  DB_PATH,
+  SOURCE_FILES,
+  JMDICT_GLOSS_LANGS,
+  GLOSS_LANG_TO_SITE,
+} from "./lib/paths.js";
 import { unzipSingleJson } from "./lib/unzip.js";
 import { radicalDisplay } from "./lib/radicals.js";
 
 const SKIP_FORM_TAGS = new Set(["rK", "sK", "sk", "iK", "oK", "io", "ok"]);
+
+/** First 1-2 senses of `w` in `glossLang` ("eng" | "fre" | "spa" | "ger"). */
+function glossOf(w, glossLang, form) {
+  const sense =
+    w.sense.find((s) => (s.appliesToKanji || []).some((a) => a === form || a === "*")) ||
+    w.sense[0];
+  return (sense?.gloss || [])
+    .filter((g) => g.lang === glossLang)
+    .slice(0, 2)
+    .map((g) => g.text)
+    .join("; ");
+}
+
+/** id -> translated gloss, for the words we already picked for `example_words`. */
+async function loadGlossMap(file, glossLang, wantedIds) {
+  const jm = await unzipSingleJson(file);
+  const map = new Map();
+  for (const w of jm.words) {
+    const id = Number(w.id);
+    if (!wantedIds.has(id) || !w.kanji.length) continue;
+    const primary = w.kanji.find((k) => k.common) || w.kanji[0];
+    const g = glossOf(w, glossLang, primary.text);
+    if (g) map.set(id, g);
+  }
+  return { map, date: jm.dictDate ?? "" };
+}
 
 async function main() {
   if (!fs.existsSync(DB_PATH)) {
@@ -41,9 +72,11 @@ async function main() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS example_words (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      kanji_literal TEXT NOT NULL, word TEXT NOT NULL, reading TEXT NOT NULL,
+      kanji_literal TEXT NOT NULL, lang TEXT NOT NULL DEFAULT 'en',
+      word TEXT NOT NULL, reading TEXT NOT NULL,
       gloss TEXT NOT NULL, priority INTEGER, order_index INTEGER NOT NULL);
-    CREATE INDEX IF NOT EXISTS idx_example_words_kanji ON example_words(kanji_literal);
+    CREATE INDEX IF NOT EXISTS idx_example_words_kanji ON example_words(kanji_literal, lang);
+    CREATE INDEX IF NOT EXISTS idx_example_words_word ON example_words(word, lang);
     CREATE TABLE IF NOT EXISTS kanji_parts (kanji_literal TEXT NOT NULL, part TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS idx_kanji_parts_kanji ON kanji_parts(kanji_literal);
     CREATE INDEX IF NOT EXISTS idx_kanji_parts_part ON kanji_parts(part);
@@ -55,7 +88,7 @@ async function main() {
   console.log(`${kanjiSet.size} jōyō kanji in DB`);
 
   // ---- example words -----------------------------------------------------
-  console.log(`JMdict (common): ${jm.words.length} entries, ${jm.dictDate ?? "?"}`);
+  console.log(`JMdict (eng-common): ${jm.words.length} entries, ${jm.dictDate ?? "?"}`);
 
   /** @type {Map<string, Array<{word,reading,gloss,priority,len,id}>>} */
   const byKanji = new Map();
@@ -72,14 +105,7 @@ async function main() {
       w.kana[0];
     if (!kana) continue;
 
-    const sense =
-      w.sense.find((s) => (s.appliesToKanji || []).some((a) => a === form || a === "*")) ||
-      w.sense[0];
-    const gloss = (sense?.gloss || [])
-      .filter((g) => g.lang === "eng")
-      .slice(0, 2)
-      .map((g) => g.text)
-      .join("; ");
+    const gloss = glossOf(w, "eng", form);
     if (!gloss) continue;
 
     const len = [...form].length;
@@ -94,9 +120,12 @@ async function main() {
   }
 
   const insWord = db.prepare(
-    "INSERT INTO example_words (kanji_literal, word, reading, gloss, priority, order_index) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO example_words (kanji_literal, lang, word, reading, gloss, priority, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
   let wordRows = 0;
+  // The (kanji, order_index, word, id) tuples we actually kept — reused to place
+  // translated rows in the same slots.
+  const picked = [];
   db.exec("BEGIN");
   for (const [ch, list] of byKanji) {
     list.sort((a, b) => a.priority - b.priority || a.len - b.len || a.id - b.id);
@@ -105,13 +134,39 @@ async function main() {
     for (const e of list) {
       if (seen.has(e.word)) continue;
       seen.add(e.word);
-      insWord.run(ch, e.word, e.reading, e.gloss, e.priority, i++);
+      insWord.run(ch, "en", e.word, e.reading, e.gloss, e.priority, i);
+      picked.push({ ch, order: i, word: e.word, reading: e.reading, priority: e.priority, id: e.id });
       wordRows++;
+      i++;
       if (i >= 10) break;
     }
   }
   db.exec("COMMIT");
-  console.log(`  example_words: ${wordRows} rows for ${byKanji.size} kanji`);
+  console.log(`  example_words (en): ${wordRows} rows for ${byKanji.size} kanji`);
+
+  // ---- translated glosses (jmdict fr / es / de editions) ---------------
+  const wantedIds = new Set(picked.map((p) => p.id));
+  const glossLangDates = {};
+  for (const [key, glossLang] of Object.entries(JMDICT_GLOSS_LANGS)) {
+    const file = SOURCE_FILES[key];
+    const site = GLOSS_LANG_TO_SITE[glossLang];
+    if (!fs.existsSync(file)) {
+      console.log(`  ${site}: ${key} not downloaded — skipping (English fallback)`);
+      continue;
+    }
+    const { map, date } = await loadGlossMap(file, glossLang, wantedIds);
+    glossLangDates[site] = date;
+    let n = 0;
+    db.exec("BEGIN");
+    for (const p of picked) {
+      const g = map.get(p.id);
+      if (!g) continue;
+      insWord.run(p.ch, site, p.word, p.reading, g, p.priority, p.order);
+      n++;
+    }
+    db.exec("COMMIT");
+    console.log(`  example_words (${site}): ${n} translated rows (${map.size} words matched)`);
+  }
 
   // ---- kanji_parts (KRADFILE) ------------------------------------------
   const krad = kradDoc.kanji;
@@ -155,6 +210,7 @@ async function main() {
     ["krad_attribution", "James Breen / EDRDG"],
     ["dict_conversion", "jmdict-simplified (scriptin)"],
     ["example_word_count", String(wordRows)],
+    ["example_word_langs", ["en", ...Object.keys(glossLangDates)].join(",")],
     ["radical_count", String(radCount)],
     ["dict_built_at", new Date().toISOString()],
   ]) {

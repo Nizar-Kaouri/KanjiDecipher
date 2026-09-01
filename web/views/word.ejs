@@ -15,22 +15,17 @@
         <% }) %>
       </div>
     <% } else { %>
-      <p class="wd-note note">
-        This exact combination isn&rsquo;t in the dictionary — here&rsquo;s what each of its
-        characters means.
-      </p>
+      <p class="wd-note note"><%= t('word.not_in_dict') %></p>
     <% } %>
   </header>
 
   <% if (breakdown.length) { %>
     <section class="kd-block wd-breakdown-block">
-      <h2><%= isExact ? 'Breakdown' : 'What each character means' %></h2>
+      <h2><%= isExact ? t('word.breakdown') : t('word.what_each_means') %></h2>
       <ul class="kanji-chips wd-breakdown">
         <% breakdown.forEach(function (k) { %><%- include('partials/kanji-chip', { k: k }) %><% }) %>
       </ul>
-      <p class="wd-hint muted">
-        Each character links to its full entry — origin story, stroke order, and readings.
-      </p>
+      <p class="wd-hint muted"><%= t('word.each_links_note') %></p>
     </section>
   <% } %>
 

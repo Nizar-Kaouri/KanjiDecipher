@@ -1,15 +1,12 @@
 </main>
 <footer class="site-footer">
   <nav class="footer-links">
-    <a href="/about">About</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/credits">Credits</a>
-    <a href="mailto:<%= CONTACT_EMAIL %>">Contact</a>
+    <a href="<%= lp %>/about"><%= t('footer.about') %></a>
+    <a href="<%= lp %>/privacy"><%= t('footer.privacy') %></a>
+    <a href="<%= lp %>/credits"><%= t('footer.credits') %></a>
+    <a href="mailto:<%= CONTACT_EMAIL %>"><%= t('footer.contact') %></a>
   </nav>
-  <p>
-    Data from <a href="/credits">KanjiVG, KANJIDIC2, JMdict &amp; KRADFILE</a> (CC BY-SA).
-    Origin stories are AI-generated and may contain errors.
-  </p>
+  <p><%- t('footer.data_html', { credits: lp + '/credits' }) %></p>
 </footer>
 <script>
   if ("serviceWorker" in navigator) {
@@ -19,6 +16,7 @@
   }
 </script>
 <script src="/theme.js" defer></script>
+<script src="/lang.js" defer></script>
 <script src="/suggest.js" defer></script>
 <% if (typeof pageClass !== 'undefined' && pageClass === 'page-kanji') { %>
 <script src="/stroke-anim.js"></script>
