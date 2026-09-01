@@ -498,7 +498,7 @@ input, select, textarea { font-size: 16px; }
 .role-sound-hint .c-role { color: var(--sound); }
 .role-sound-hint { background: var(--sound-soft); }
 .role-radical .c-role { color: var(--accent); }
-.phon-note, .origin-tag { font-size: .85rem; color: var(--muted); margin-top: 12px; }
+.phon-note { font-size: .85rem; color: var(--muted); margin-top: 12px; }
 .phon-note { background: var(--sound-soft); border-radius: var(--radius); padding: 8px 12px; }
 
 /* stroke highlight via component hover */

@@ -39,20 +39,11 @@
         <h2>Origin</h2>
         <% if (kanji.origin_story) { %>
           <p class="origin-text"><%- linkifyKanji(kanji.origin_story) %></p>
-          <p class="origin-tag">
-            <% if (kanji.origin_story_model === 'manual-seed') { %>
-              Hand-written summary.
-            <% } else { %>
-              AI-generated (<%= kanji.origin_story_model %>)<%= kanji.origin_story_reviewed ? ', reviewed' : ', not yet reviewed' %>.
-            <% } %>
-            Formation type (automated guess): <%= kanji.formation_label %>.
-          </p>
         <% } else { %>
           <p class="origin-text muted">
             No origin story yet. Run <code>node pipeline/4-generate-origin-stories.js --only <%= kanji.literal %></code>
             to generate one.
           </p>
-          <p class="origin-tag">Formation type (automated guess): <%= kanji.formation_label %>.</p>
         <% } %>
       </section>
     </div>
@@ -137,6 +128,7 @@
     <dl>
       <div><dt>Strokes</dt><dd><%= kanji.stroke_count ?? '—' %></dd></div>
       <div><dt>Kangxi radical</dt><dd><%= kanji.radical_number ?? '—' %></dd></div>
+      <div><dt>Formation type</dt><dd><%= kanji.formation_label ?? '—' %></dd></div>
       <div><dt>Grade</dt><dd><%= kanji.grade ? gradeLabel(kanji.grade) : '—' %></dd></div>
       <div><dt>Frequency rank</dt><dd><%= kanji.freq ? '#' + kanji.freq + ' (newspapers)' : '—' %></dd></div>
       <div><dt>Former JLPT</dt><dd><%= kanji.jlpt ? 'level ' + kanji.jlpt : '—' %></dd></div>
