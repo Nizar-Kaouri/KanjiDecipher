@@ -215,10 +215,12 @@ sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
   10.5k / es 10.4k / de 13.9k translated rows; no Portuguese edition → English).
   `exampleWordsFor()` keeps the English word selection and swaps each gloss for
   its translation where one exists. **Live.**
-- **Meaning search** — for fr/es/pt it scans `kanji_meanings_l10n` (held in
-  memory, ~6k short strings) with accent-folded, position-weighted matching, and
-  falls back to the English gloss index when that turns up nothing. German (no
-  KANJIDIC2 meanings) searches the English glosses.
+- **Meaning search** — each language scans its own `kanji_meanings_l10n` set
+  (held in memory) with accent-folded, position-weighted matching. A localised
+  page shows **no** English meaning results; the English gloss index is used
+  only for a language that has zero meaning data (none do). German meanings are
+  machine-translated (`4c-translate-meanings.js`, ~2,090 of 2,136 — rerun for
+  the rest); fr/es/pt come from KANJIDIC2.
 - **Origin stories** — `origin_stories(literal, lang, …)` holds translated
   stories (a page shows English + a note when its language has none yet).
   `4b-translate-stories.js` translates the English stories with the Google
@@ -229,8 +231,11 @@ sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
   node pipeline/4b-translate-stories.js --lang fr    # ~7 min, free tier
   ```
 
-  French is done (all 2,136, model `gemini-flash-lite-latest`). Run `--lang es`
-  / `pt` / `de` the same way. Batches auto-split and retry on a bad JSON response.
+  All four languages done (2,136 each, `gemini-flash-lite-latest`). Batches
+  auto-split and retry on a bad JSON response. `4c-translate-meanings.js` does
+  the same for the per-kanji meaning glosses (used for German, which KANJIDIC2
+  doesn't cover). `pipeline/lib/gemini.js` is the shared client; key from
+  `GEMINI_API_KEY` or `pipeline/.gemini_key`.
 - **SEO** — `<html lang>`, per-language `hreflang` alternates + `x-default`,
   language-prefixed `canonical`, and a **sitemap index** (`/sitemap.xml`) over
   per-language `/sitemap-<lang>.xml`.

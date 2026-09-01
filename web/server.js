@@ -344,17 +344,13 @@ function unifiedSearch(q, lang = "en") {
     }
   }
 
-  // Any Latin / Western-European letter → try a meaning lookup. Non-English
-  // languages search their own meaning set first, then fall back to the English
-  // glosses (still showing localised meanings on the cards).
+  // Any Latin / Western-European letter → try a meaning lookup. A non-English
+  // language searches only its own meaning set (no English results bleeding onto
+  // a localised page); English glosses are used only if that language has no
+  // meaning data at all (searchMeaningLocalized returns null, not []).
   let meaning = [];
   if (/[a-zA-ZÀ-ÿ]/.test(raw)) {
-    if (lang !== "en") {
-      const local = searchMeaningLocalized(raw, lang);
-      meaning = local && local.length ? local : searchMeaning(raw, lang);
-    } else {
-      meaning = searchMeaning(raw, lang);
-    }
+    meaning = lang !== "en" ? searchMeaningLocalized(raw, lang) ?? searchMeaning(raw, lang) : searchMeaning(raw, lang);
   }
 
   let reading = [];

@@ -47,6 +47,9 @@ function main() {
   // source files.
   const preservedStories = new Map();
   const preservedDict = {};
+  // KANJIDIC2 ships fr/es/pt meanings; any other language in kanji_meanings_l10n
+  // is machine-translated (4c) and must survive a rebuild.
+  let preservedMtMeanings = [];
   if (fs.existsSync(DB_PATH)) {
     try {
       const old = openDb({ readonly: true });
@@ -63,6 +66,13 @@ function main() {
         } catch {
           /* table absent — nothing to carry */
         }
+      }
+      try {
+        preservedMtMeanings = old
+          .prepare("SELECT literal, lang, meanings FROM kanji_meanings_l10n WHERE lang NOT IN ('fr','es','pt')")
+          .all();
+      } catch {
+        /* table absent */
       }
       old.close();
       if (preservedStories.size)
@@ -211,6 +221,16 @@ function main() {
     restoredDict += rows.length;
   }
   if (restoredDict) console.log(`  restored ${restoredDict} dictionary rows`);
+
+  if (preservedMtMeanings.length) {
+    const ins = db.prepare(
+      "INSERT OR IGNORE INTO kanji_meanings_l10n (literal, lang, meanings) VALUES (?, ?, ?)",
+    );
+    db.exec("BEGIN");
+    for (const r of preservedMtMeanings) ins.run(r.literal, r.lang, r.meanings);
+    db.exec("COMMIT");
+    console.log(`  restored ${preservedMtMeanings.length} machine-translated meaning rows`);
+  }
 
   const metaRows = [
     ["build_timestamp", new Date().toISOString()],

@@ -21,18 +21,19 @@
  *   --force            re-translate even if a row already exists
  *   --batch N          kanji per request (default 15)
  *   --rpm N            max requests/minute (default 12; free tier allows ~15)
- *   --model ID         Gemini model (default gemini-2.0-flash)
+ *   --model ID         Gemini model (default gemini-flash-lite-latest)
  *
  * API key: GEMINI_API_KEY env var, or pipeline/.gemini_key (git-ignored).
  */
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { openDb } from "./lib/db.js";
 import { DB_PATH } from "./lib/paths.js";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const MODEL_DEFAULT = "gemini-flash-lite-latest";
+import {
+  GEMINI_MODEL_DEFAULT as MODEL_DEFAULT,
+  readGeminiKey,
+  callGeminiJson,
+  sleep,
+} from "./lib/gemini.js";
 
 const LANG_NAMES = { fr: "French", es: "Spanish", pt: "Portuguese", de: "German" };
 
@@ -61,20 +62,6 @@ function parseArgs(argv) {
   return a;
 }
 
-function readApiKey() {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim();
-  const f = path.join(here, ".gemini_key");
-  if (fs.existsSync(f)) return fs.readFileSync(f, "utf8").trim();
-  throw new Error(
-    "No Gemini API key.\n" +
-      "  Get a free key at https://aistudio.google.com/apikey , then either:\n" +
-      "    setx GEMINI_API_KEY \"your-key\"   (new shell)   — or —\n" +
-      "    put it in pipeline/.gemini_key",
-  );
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 function buildPrompt(langName, glossary, batch) {
   const obj = {};
   for (const r of batch) obj[r.literal] = r.origin_story;
@@ -91,40 +78,6 @@ function buildPrompt(langName, glossary, batch) {
     `with exactly the same keys as the input.\n\n` +
     `Input:\n${JSON.stringify(obj, null, 1)}`
   );
-}
-
-async function callGemini(model, key, prompt, tries = 4) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.3, responseMimeType: "application/json" },
-  };
-  for (let attempt = 1; attempt <= tries; attempt++) {
-    let res;
-    try {
-      res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      if (attempt === tries) throw err;
-      await sleep(2000 * attempt);
-      continue;
-    }
-    if (res.status === 429 || res.status >= 500) {
-      if (attempt === tries) throw new Error(`HTTP ${res.status} after ${tries} tries`);
-      const wait = res.status === 429 ? 30000 : 3000 * attempt;
-      console.warn(`  HTTP ${res.status} — waiting ${wait / 1000}s`);
-      await sleep(wait);
-      continue;
-    }
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-    const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
-    if (!text) throw new Error("empty response");
-    return JSON.parse(text);
-  }
 }
 
 async function main() {
@@ -179,7 +132,7 @@ async function main() {
     return;
   }
 
-  const key = readApiKey();
+  const key = readGeminiKey();
   const upsert = db.prepare(`
     INSERT INTO origin_stories (literal, lang, story, model, generated_at)
     VALUES (?, ?, ?, ?, ?)
@@ -195,7 +148,7 @@ async function main() {
   // single bad quote doesn't lose 20 stories.
   async function translateGroup(rows, depth = 0) {
     try {
-      const out = await callGemini(args.model, key, buildPrompt(langName, glossary, rows));
+      const out = await callGeminiJson(args.model, key, buildPrompt(langName, glossary, rows));
       const missing = [];
       for (const r of rows) {
         const s = out[r.literal];
