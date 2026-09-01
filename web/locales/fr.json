@@ -35,7 +35,6 @@
   "kanji.origin": "Origine",
   "kanji.no_story": "Pas encore de récit d’origine pour ce caractère.",
   "kanji.origin_fallback_note": "Affiché en anglais — une version {lang} de ce récit d’origine n’est pas encore disponible.",
-  "kanji.origin_translated_note": "Traduit automatiquement de l’anglais.",
   "kanji.components": "Composants",
   "kanji.single_shape": "Ce caractère est considéré comme une forme unique et indivisible{paren}.",
   "kanji.sound_hint_note_html": "Un composant <strong>indice phonétique</strong> renseigne sur la prononciation du caractère, pas sur son sens — n’y cherchez pas de signification.",

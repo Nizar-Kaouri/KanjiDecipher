@@ -41,8 +41,6 @@
           <p class="origin-text"><%- linkifyKanji(kanji.origin_story) %></p>
           <% if (kanji.originIsFallback) { %>
             <p class="origin-tag muted"><%= t('kanji.origin_fallback_note', { lang: langLabel }) %></p>
-          <% } else if (kanji.originIsTranslated) { %>
-            <p class="origin-tag muted"><%= t('kanji.origin_translated_note') %></p>
           <% } %>
         <% } else { %>
           <p class="origin-text muted"><%= t('kanji.no_story') %></p>

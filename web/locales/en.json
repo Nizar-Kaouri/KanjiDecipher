@@ -35,7 +35,6 @@
   "kanji.origin": "Origin",
   "kanji.no_story": "No origin story for this character yet.",
   "kanji.origin_fallback_note": "Shown in English — a {lang} version of this origin story isn’t available yet.",
-  "kanji.origin_translated_note": "Machine-translated from English.",
   "kanji.components": "Components",
   "kanji.single_shape": "This character is treated as a single, undivided shape{paren}.",
   "kanji.sound_hint_note_html": "A <strong>sound hint</strong> component points at the character’s pronunciation, not its meaning — don’t read a meaning into it.",

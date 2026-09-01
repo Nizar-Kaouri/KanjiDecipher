@@ -35,7 +35,6 @@
   "kanji.origin": "Ursprung",
   "kanji.no_story": "Für dieses Zeichen gibt es noch keine Ursprungsgeschichte.",
   "kanji.origin_fallback_note": "Auf Englisch angezeigt – eine {lang}e Fassung dieser Ursprungsgeschichte ist noch nicht verfügbar.",
-  "kanji.origin_translated_note": "Automatisch aus dem Englischen übersetzt.",
   "kanji.components": "Bestandteile",
   "kanji.single_shape": "Dieses Zeichen wird als eine einzige, ungeteilte Form behandelt{paren}.",
   "kanji.sound_hint_note_html": "Ein <strong>Lauthinweis</strong>-Bestandteil deutet auf die Aussprache des Zeichens hin, nicht auf seine Bedeutung – lies keine Bedeutung hinein.",
