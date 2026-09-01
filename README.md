@@ -215,8 +215,10 @@ sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
   10.5k / es 10.4k / de 13.9k translated rows; no Portuguese edition → English).
   `exampleWordsFor()` keeps the English word selection and swaps each gloss for
   its translation where one exists. **Live.**
-- **Meaning search** still matches English glosses only (the result *cards* are
-  localised). Per-language meaning search is a later step.
+- **Meaning search** — for fr/es/pt it scans `kanji_meanings_l10n` (held in
+  memory, ~6k short strings) with accent-folded, position-weighted matching, and
+  falls back to the English gloss index when that turns up nothing. German (no
+  KANJIDIC2 meanings) searches the English glosses.
 - **Origin stories** — `origin_stories(literal, lang, …)` holds translated
   stories (a page shows English + a note when its language has none yet).
   `4b-translate-stories.js` translates the English stories with the Google

@@ -60,6 +60,11 @@ if (HAS_MEANINGS_L10N) {
   }
 }
 
+// Newspaper-frequency rank per kanji (lower = more common) — the meaning-search
+// tie-breaker, mirroring the English FTS ordering.
+const FREQ = new Map(db.prepare("SELECT literal, freq FROM kanji").all().map((r) => [r.literal, r.freq]));
+const freqRank = (lit) => FREQ.get(lit) ?? 1e9;
+
 /** Meanings array for a kanji in `lang`, falling back to English. */
 function meaningsOf(literal, lang = "en") {
   if (lang !== "en") {
@@ -235,8 +240,58 @@ function toResultList(rows, lang = "en") {
   }));
 }
 
-// Meaning search always matches against the English glosses (the only ones
-// indexed); only the meanings *shown* on the result cards are localised.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Lower-case + strip diacritics + expand ligatures, so a meaning search matches
+// with or without accents ("cafe" ↔ "café", "coracao" ↔ "coração", "cœur" ↔ "coeur").
+const foldText = (s) =>
+  String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae");
+
+/**
+ * Meaning search against a non-English meaning set (kanji_meanings_l10n, held in
+ * memory). Returns null when that language has no meaning data, so the caller
+ * can fall back to the English gloss search. The corpus is tiny (~6k short
+ * strings) so a scan is instant; ranking mimics the English FTS order.
+ */
+function searchMeaningLocalized(q, lang) {
+  const idx = L10N_MEANINGS.get(lang);
+  if (!idx) return null;
+  const needle = foldText(q.trim());
+  if (!needle) return [];
+  const words = needle.split(/\s+/).filter(Boolean);
+  const esc = escapeRegex(needle);
+  // Unicode-aware "flanked by non-letters" — works for accented queries where
+  // JS \b (ASCII-only) would not.
+  const wholeRe = new RegExp(`(^|[^\\p{L}])${esc}([^\\p{L}]|$)`, "u");
+  const prefixRe = new RegExp(`(^|[^\\p{L}])${esc}`, "u");
+  const hits = [];
+  for (const [literal, meanings] of idx) {
+    let score = 0;
+    let at = 99;
+    meanings.forEach((m, i) => {
+      const ml = foldText(m);
+      let s = 0;
+      if (ml === needle) s = 5;
+      else if (wholeRe.test(ml)) s = 3;
+      else if (words.length > 1 && words.every((w) => ml.includes(w))) s = 2;
+      else if (needle.length >= 5 && prefixRe.test(ml)) s = 1;
+      if (s > score || (s === score && i < at)) { score = s; at = i; }
+    });
+    if (score) hits.push({ literal, score, at });
+  }
+  // Best score, then the match's position in the meaning list (a kanji whose
+  // primary meaning is the query beats one where it's a minor sense), then freq.
+  hits.sort((a, b) => b.score - a.score || a.at - b.at || freqRank(a.literal) - freqRank(b.literal));
+  return hits.slice(0, 120).map((h) => ({ literal: h.literal, meaning: meaningText(h.literal, lang) }));
+}
+
+// English meaning search: FTS5 over the English glosses, LIKE fallback. Result
+// cards are still shown in `lang`.
 function searchMeaning(q, lang = "en") {
   const clean = q.trim().toLowerCase();
   if (!clean) return [];
@@ -289,8 +344,18 @@ function unifiedSearch(q, lang = "en") {
     }
   }
 
+  // Any Latin / Western-European letter → try a meaning lookup. Non-English
+  // languages search their own meaning set first, then fall back to the English
+  // glosses (still showing localised meanings on the cards).
   let meaning = [];
-  if (/[a-z]/i.test(raw)) meaning = searchMeaning(raw, lang);
+  if (/[a-zA-ZÀ-ÿ]/.test(raw)) {
+    if (lang !== "en") {
+      const local = searchMeaningLocalized(raw, lang);
+      meaning = local && local.length ? local : searchMeaning(raw, lang);
+    } else {
+      meaning = searchMeaning(raw, lang);
+    }
+  }
 
   let reading = [];
   let readingKana = null;
@@ -695,7 +760,10 @@ app.get("/api/suggest", (req, res) => {
   };
 
   s.direct.forEach((r) => add({ ...r, reason: tt("suggest.you_typed") }));
-  if (s.readingKana) {
+  // A real kana/romaji reading query (it actually matched something as a
+  // reading) leads with words + single-kanji readings; otherwise it's a
+  // meaning query — including Latin words that merely *look* convertible to kana.
+  if (s.readingKana && (s.words.length || s.reading.length)) {
     const reason = tt("suggest.read_as", { kana: s.readingKana });
     s.words.forEach((w) =>
       add({ literal: w.word, meaning: w.gloss, reason, href: `/word/${encodeURIComponent(w.word)}` }),
