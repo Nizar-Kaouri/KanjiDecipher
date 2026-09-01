@@ -218,9 +218,17 @@ sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
 - **Meaning search** still matches English glosses only (the result *cards* are
   localised). Per-language meaning search is a later step.
 - **Origin stories** — `origin_stories(literal, lang, …)` holds translated
-  stories; until one exists the English text shows with a note. Generating them
-  needs an LLM batch (`4-generate-origin-stories.js` would take a `--lang` flag)
-  — not done.
+  stories (a page shows English + a note when its language has none yet).
+  `4b-translate-stories.js` translates the English stories with the Google
+  Gemini API (generous free tier):
+
+  ```bash
+  echo YOUR_KEY > pipeline/.gemini_key      # or set GEMINI_API_KEY
+  node pipeline/4b-translate-stories.js --lang fr    # ~7 min, free tier
+  ```
+
+  French is done (all 2,136, model `gemini-flash-lite-latest`). Run `--lang es`
+  / `pt` / `de` the same way. Batches auto-split and retry on a bad JSON response.
 - **SEO** — `<html lang>`, per-language `hreflang` alternates + `x-default`,
   language-prefixed `canonical`, and a **sitemap index** (`/sitemap.xml`) over
   per-language `/sitemap-<lang>.xml`.

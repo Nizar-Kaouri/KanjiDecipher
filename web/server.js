@@ -389,13 +389,18 @@ function lookupKanji(literal, lang = "en") {
   // Example words + related-kanji rails.
   const exampleWords = exampleWordsFor(literal, lang);
 
-  // Origin story: prefer the requested language, fall back to English.
+  // Origin story: prefer a translation for the requested language, else English.
   let originStory = row.origin_story;
   let originIsFallback = false;
+  let originIsTranslated = false;
   if (lang !== "en") {
     const localized = originStoryStmt?.get(literal, lang)?.story;
-    if (localized) originStory = localized;
-    else if (originStory) originIsFallback = true;
+    if (localized) {
+      originStory = localized;
+      originIsTranslated = true;
+    } else if (originStory) {
+      originIsFallback = true;
+    }
   }
 
   const exclude = new Set([literal]);
@@ -442,6 +447,7 @@ function lookupKanji(literal, lang = "en") {
     ...row,
     origin_story: originStory,
     originIsFallback,
+    originIsTranslated,
     components,
     exampleWords,
     samePhonetic: samePhoneticChips.slice(0, 14),

@@ -4,25 +4,20 @@
     "endonym": "Deutsch",
     "dir": "ltr"
   },
-
   "nav.browse": "Durchsuchen",
   "nav.radicals": "Radikale",
-
   "search.placeholder": "Kanji, Bedeutung oder Lesung…",
   "search.placeholder_hero": "Probiere ein Kanji, ein englisches Wort oder eine Lesung…",
   "search.button": "Suchen",
   "search.aria": "Suchen",
   "search.aria_hero": "Kanji suchen",
-
   "theme.toggle_aria": "Farbschema umschalten",
   "lang.label": "Sprache",
-
   "footer.about": "Über",
   "footer.privacy": "Datenschutz",
   "footer.credits": "Danksagungen",
   "footer.contact": "Kontakt",
   "footer.data_html": "Daten von <a href=\"{credits}\">KanjiVG, KANJIDIC2, JMdict &amp; KRADFILE</a> (CC BY-SA). Die Ursprungsgeschichten sind KI-generiert und können Fehler enthalten.",
-
   "home.h1": "Woher die Formen der Kanji kommen",
   "home.lede": "Suche eines der {count} Jōyō-Kanji, um zu sehen, wie es sich in Teile zerlegt, was es bedeutet, wie es gelesen wird, seine Strichreihenfolge und eine kurze, allgemein verständliche Erklärung, wie die Form zu ihrer Bedeutung kam.",
   "home.example_meaning": "Fluss",
@@ -33,7 +28,6 @@
   "home.find_radical": "Nach Radikal suchen",
   "home.shuffle": "Mischen",
   "home.shuffle_aria": "Eine andere Auswahl an Kanji zeigen",
-
   "kanji.meaning_readings": "Bedeutung & Lesungen",
   "kanji.onyomi": "On-Lesung",
   "kanji.kunyomi": "Kun-Lesung",
@@ -41,6 +35,7 @@
   "kanji.origin": "Ursprung",
   "kanji.no_story": "Für dieses Zeichen gibt es noch keine Ursprungsgeschichte.",
   "kanji.origin_fallback_note": "Auf Englisch angezeigt – eine {lang}e Fassung dieser Ursprungsgeschichte ist noch nicht verfügbar.",
+  "kanji.origin_translated_note": "Automatisch aus dem Englischen übersetzt.",
   "kanji.components": "Bestandteile",
   "kanji.single_shape": "Dieses Zeichen wird als eine einzige, ungeteilte Form behandelt{paren}.",
   "kanji.sound_hint_note_html": "Ein <strong>Lauthinweis</strong>-Bestandteil deutet auf die Aussprache des Zeichens hin, nicht auf seine Bedeutung – lies keine Bedeutung hinein.",
@@ -65,15 +60,12 @@
   "kanji.stroke_numbered": "Nummeriert",
   "kanji.strokes_count": "{n} Striche",
   "kanji.meanings_dash": "—",
-
   "grade.kyoiku": "Klasse {n} (Kyōiku)",
   "grade.secondary": "Jōyō (Sekundarstufe)",
   "grade.plain": "Klasse {n}",
-
   "role.sound-hint": "Lauthinweis",
   "role.radical": "Radikal",
   "role.meaning-part": "Bedeutungsteil",
-
   "position.left": "links",
   "position.right": "rechts",
   "position.top": "oben",
@@ -83,21 +75,17 @@
   "position.kamae": "Umrahmung",
   "position.kamae1": "Umrahmung",
   "position.kamae2": "Umrahmung",
-
   "formation.phono-semantic": "Phonosemantisch (Bedeutung + Lauthinweis)",
   "formation.compound-ideographic": "Zusammengesetztes Ideogramm (kombinierte Bedeutungen)",
   "formation.pictographic-or-simple": "Piktografisch oder einfach",
   "formation.unknown": "Unsicher",
-
   "word.breakdown": "Zerlegung",
   "word.what_each_means": "Was jedes Zeichen bedeutet",
   "word.not_in_dict": "Diese genaue Kombination steht nicht im Wörterbuch – hier ist die Bedeutung jedes einzelnen Zeichens.",
   "word.each_links_note": "Jedes Zeichen verweist auf seinen vollständigen Eintrag: Ursprungsgeschichte, Strichreihenfolge und Lesungen.",
-
   "suggest.you_typed": "das hast du eingegeben",
   "suggest.read_as": "gelesen {kana}",
   "suggest.meaning": "Bedeutung",
-
   "results.heading": "Ergebnisse für „{q}“",
   "results.nothing": "Nichts passt zu „{q}“. Versuche ein englisches Wort, ein Kanji-Zeichen oder eine Lesung in Rōmaji oder Kana.",
   "results.words": "Wörter",
@@ -105,7 +93,6 @@
   "results.by_meaning": "Nach Bedeutung",
   "results.read_as": "Gelesen",
   "results.showing_first": "zeige die ersten {n}",
-
   "browse.heading": "Die {count} Jōyō-Kanji durchsuchen",
   "browse.filter_grade": "Klasse",
   "browse.filter_jlpt": "JLPT",
@@ -133,7 +120,6 @@
   "browse.prev": "Zurück",
   "browse.next": "Weiter",
   "browse.page_of": "Seite {page} / {pages}",
-
   "radicals.heading": "Ein Kanji über seine Bestandteile finden",
   "radicals.need_data_html": "Die Radikalauswahl benötigt die Wörterbuchdaten. Führe <code>npm run pipeline:dictionary</code> aus und starte den Server neu.",
   "radicals.pick_note_html": "Wähle einen oder mehrere Bestandteile – die Ergebnisse zeigen Kanji, die <strong>alle</strong> davon enthalten.",
@@ -146,21 +132,17 @@
   "radicals.matches": "{n} Kanji enthalten {parts}",
   "radicals.matches_capped": "{n}+ Kanji enthalten {parts}",
   "radicals.none": "Kein Kanji enthält {parts}.",
-
   "notfound.title": "Nicht gefunden",
   "notfound.page": "Seite nicht gefunden.",
   "notfound.no_kanji": "Kein Jōyō-Kanji „{char}“ in der Datenbank.",
   "notfound.not_word": "„{word}“ ist kein Wörterbucheintrag und keine Folge von Jōyō-Kanji, die sich zerlegen lässt.",
   "notfound.back": "Zurück zur Suche",
-
   "about.title": "Über {site}",
   "about.body_html": "<p>{site} ist ein kostenloses Nachschlagewerkzeug für die <strong>2136 Jōyō-Kanji</strong> – den Satz, der in der japanischen Schullaufbahn gelehrt wird. Suche ein beliebiges Zeichen (oder eine englische Bedeutung oder eine Lesung) und du erhältst seine Zerlegung in Bestandteile, seine Bedeutungen und On-/Kun-Lesungen, ein animiertes Strichreihenfolge-Diagramm, häufige Wörter, die es verwenden, verwandte Kanji und eine kurze, allgemein verständliche Erklärung, <em>wie die Form zu ihrer Bedeutung kam</em>.</p>\n<p>Es existiert, weil gerade dieser letzte Teil – die Ursprungsgeschichte – meist am schwersten zu finden ist. Strichreihenfolge und Lesungen gibt es überall; eine Erklärung in einem Absatz, warum 明 eine Sonne neben einem Mond ist oder dass das 青 in 清 ein Lauthinweis und keine Bedeutung ist, nicht. {site} bezieht die strukturellen Daten aus offenen Datensätzen (KanjiVG, KANJIDIC2, JMdict, KRADFILE – siehe die <a href=\"{credits}\">Danksagungen</a>) und verbindet jedes Zeichen mit einer generierten, allgemein verständlichen Etymologie, sodass das ganze Bild auf eine Seite passt.</p>\n<p>Es ist ein Nachschlagewerk, kein Kurs: keine Konten, keine Lektionen, keine Quizze, keine Fortschrittsverfolgung. Die Ursprungserklärungen sind maschinell generiert und können Fehler enthalten.</p>",
   "about.contact_html": "Fragen oder Korrekturen: <a href=\"mailto:{email}\">{email}</a>.",
-
   "privacy.title": "Datenschutzerklärung",
   "privacy.updated": "Zuletzt aktualisiert: 30. August 2026",
   "privacy.body_html": "<p>{site} ist eine statische Nachschlage-Website. Sie hat keine Benutzerkonten und fragt keine personenbezogenen Daten ab. Diese Seite erklärt, was das in der Praxis bedeutet.</p>\n<h2>Was wir heute erfassen</h2>\n<ul>\n<li><strong>Nichts, was dich identifiziert.</strong> Es gibt keine Registrierungen, keine Anmeldungen und keine Formulare.</li>\n<li><strong>Deine Design- und Spracheinstellung</strong> werden in deinem Browser gespeichert (localStorage / ein Cookie). Sie bleiben auf deinem Gerät.</li>\n<li><strong>Übliche Server-Protokolle.</strong> Wie fast jede Website kann der Server kurzzeitig Anfragedaten wie deine IP-Adresse, die angeforderte Seite und die User-Agent-Zeichenfolge deines Browsers zu Sicherheits- und Fehlersuchzwecken aufzeichnen.</li>\n<li><strong>Offline-Zwischenspeicherung.</strong> Ein Service Worker legt Kopien von Seiten und Ressourcen im Browser-Cache ab, damit besuchte Seiten ohne Verbindung laden. Diese Daten bleiben auf deinem Gerät.</li>\n</ul>\n<h2>Werbung</h2>\n<p>{site} zeigt über <strong>Google AdSense</strong> Werbung an, um die Hosting-Kosten zu decken. Google und seine Partner können <strong>Cookies und ähnliche Technologien</strong> verwenden, um Anzeigen auszuliefern und zu messen, einschließlich Anzeigen auf Grundlage deiner früheren Besuche auf dieser und anderen Websites. Diese Daten werden von Google erfasst und kontrolliert, nicht von {site}.</p>\n<p>Du kannst die Anzeigenpersonalisierung unter <a href=\"https://myadcenter.google.com/\" rel=\"noopener\">myadcenter.google.com</a> einsehen und steuern und personalisierte Werbung vieler Anbieter unter <a href=\"https://optout.aboutads.info/\" rel=\"noopener\">optout.aboutads.info</a> oder <a href=\"https://www.youronlinechoices.eu/\" rel=\"noopener\">youronlinechoices.eu</a> deaktivieren. Weitere Einzelheiten findest du in <a href=\"https://policies.google.com/technologies/partner-sites\" rel=\"noopener\">„Wie Google Daten verwendet, wenn du Websites oder Apps unserer Partner nutzt“</a>.</p>\n<h2>Analyse</h2>\n<p>Derzeit keine.</p>\n<h2>Datenquellen</h2>\n<p>Die Kanji-Daten stammen aus öffentlichen, frei lizenzierten Datensätzen (aufgeführt auf der Seite <a href=\"{credits}\">Danksagungen</a>). Keine Informationen über dich werden an diese Projekte gesendet.</p>\n<h2>Kinder</h2>\n<p>Die Website richtet sich nicht an Kinder unter 13 Jahren und erfasst wissentlich keine Informationen über sie.</p>\n<h2>Kontakt</h2>\n<p>Fragen zum Datenschutz: <a href=\"mailto:{email}\">{email}</a>.</p>",
-
   "credits.title": "Danksagungen & Lizenzen",
   "credits.intro_html": "{site} ist vollständig aus frei lizenzierten Daten aufgebaut. Da KanjiVG unter einer Share-alike-Lizenz (CC BY-SA) steht, werden die abgeleitete Datenbank und die Seiten dieser Website ebenfalls unter <strong>CC BY-SA</strong> bereitgestellt.",
   "credits.field_author": "Autor",
@@ -181,7 +163,6 @@
   "credits.other_title": "Sonstiges",
   "credits.wanakana_html": "<a href=\"https://github.com/WaniKani/WanaKana\">WanaKana</a> (MIT) wandelt die Rōmaji-Sucheingabe in Kana um.",
   "credits.build_line": "Datenbank erstellt am {timestamp}.",
-
   "seo.default_tagline": "Ursprünge der Jōyō-Kanji, Strichreihenfolge & Lesungen",
   "seo.default_description": "Suche eines der {count} Jōyō-Kanji: wie es sich zerlegt, was es bedeutet, wie es gelesen wird, seine Strichreihenfolge und eine allgemein verständliche Ursprungsgeschichte.",
   "seo.kanji_description": "{literal}{paren} bedeutet {meanings} – sieh dir seine Ursprungsgeschichte, Strichreihenfolge, Lesungen und verwandte Kanji auf {site} an.",

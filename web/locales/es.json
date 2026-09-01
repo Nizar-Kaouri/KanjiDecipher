@@ -4,25 +4,20 @@
     "endonym": "Español",
     "dir": "ltr"
   },
-
   "nav.browse": "Explorar",
   "nav.radicals": "Radicales",
-
   "search.placeholder": "kanji, significado o lectura…",
   "search.placeholder_hero": "Prueba con un kanji, una palabra en inglés o una lectura…",
   "search.button": "Buscar",
   "search.aria": "Buscar",
   "search.aria_hero": "Buscar kanji",
-
   "theme.toggle_aria": "Cambiar el tema de color",
   "lang.label": "Idioma",
-
   "footer.about": "Acerca de",
   "footer.privacy": "Privacidad",
   "footer.credits": "Créditos",
   "footer.contact": "Contacto",
   "footer.data_html": "Datos de <a href=\"{credits}\">KanjiVG, KANJIDIC2, JMdict &amp; KRADFILE</a> (CC BY-SA). Las historias de origen se generan con IA y pueden contener errores.",
-
   "home.h1": "De dónde vienen las formas de los kanji",
   "home.lede": "Busca cualquiera de los {count} kanji jōyō para ver cómo se descompone, qué significa, cómo se lee, su orden de trazos y un breve relato en lenguaje sencillo de cómo la forma llegó a portar ese significado.",
   "home.example_meaning": "río",
@@ -33,7 +28,6 @@
   "home.find_radical": "Buscar por radical",
   "home.shuffle": "Mezclar",
   "home.shuffle_aria": "Mostrar otro conjunto de kanji",
-
   "kanji.meaning_readings": "Significado y lecturas",
   "kanji.onyomi": "On’yomi",
   "kanji.kunyomi": "Kun’yomi",
@@ -41,6 +35,7 @@
   "kanji.origin": "Origen",
   "kanji.no_story": "Aún no hay historia de origen para este carácter.",
   "kanji.origin_fallback_note": "Mostrado en inglés: todavía no hay una versión en {lang} de esta historia de origen.",
+  "kanji.origin_translated_note": "Traducido automáticamente del inglés.",
   "kanji.components": "Componentes",
   "kanji.single_shape": "Este carácter se trata como una forma única e indivisible{paren}.",
   "kanji.sound_hint_note_html": "Un componente de <strong>pista fonética</strong> indica la pronunciación del carácter, no su significado: no le busques un sentido.",
@@ -65,15 +60,12 @@
   "kanji.stroke_numbered": "Numerado",
   "kanji.strokes_count": "{n} trazos",
   "kanji.meanings_dash": "—",
-
   "grade.kyoiku": "Curso {n} (Kyōiku)",
   "grade.secondary": "Jōyō (secundaria)",
   "grade.plain": "Curso {n}",
-
   "role.sound-hint": "pista fonética",
   "role.radical": "radical",
   "role.meaning-part": "parte de significado",
-
   "position.left": "izquierda",
   "position.right": "derecha",
   "position.top": "arriba",
@@ -83,21 +75,17 @@
   "position.kamae": "marco",
   "position.kamae1": "marco",
   "position.kamae2": "marco",
-
   "formation.phono-semantic": "Fonosemántico (significado + pista fonética)",
   "formation.compound-ideographic": "Ideográfico compuesto (significados combinados)",
   "formation.pictographic-or-simple": "Pictográfico o simple",
   "formation.unknown": "Incierto",
-
   "word.breakdown": "Descomposición",
   "word.what_each_means": "Qué significa cada carácter",
   "word.not_in_dict": "Esta combinación exacta no está en el diccionario: aquí tienes el significado de cada uno de sus caracteres.",
   "word.each_links_note": "Cada carácter enlaza con su ficha completa: historia de origen, orden de trazos y lecturas.",
-
   "suggest.you_typed": "esto es lo que escribiste",
   "suggest.read_as": "se lee {kana}",
   "suggest.meaning": "significado",
-
   "results.heading": "Resultados de «{q}»",
   "results.nothing": "Nada coincide con «{q}». Prueba con una palabra en inglés, un carácter kanji o una lectura en rōmaji o kana.",
   "results.words": "Palabras",
@@ -105,7 +93,6 @@
   "results.by_meaning": "Por significado",
   "results.read_as": "Se lee",
   "results.showing_first": "mostrando los primeros {n}",
-
   "browse.heading": "Explorar los {count} kanji jōyō",
   "browse.filter_grade": "Curso",
   "browse.filter_jlpt": "JLPT",
@@ -133,7 +120,6 @@
   "browse.prev": "Anterior",
   "browse.next": "Siguiente",
   "browse.page_of": "Página {page} / {pages}",
-
   "radicals.heading": "Encontrar un kanji por sus partes",
   "radicals.need_data_html": "El selector de radicales necesita los datos del diccionario. Ejecuta <code>npm run pipeline:dictionary</code> y reinicia el servidor.",
   "radicals.pick_note_html": "Elige uno o más componentes: los resultados muestran los kanji que los contienen <strong>todos</strong>.",
@@ -146,21 +132,17 @@
   "radicals.matches": "{n} kanji contienen {parts}",
   "radicals.matches_capped": "{n}+ kanji contienen {parts}",
   "radicals.none": "Ningún kanji contiene {parts}.",
-
   "notfound.title": "No encontrado",
   "notfound.page": "Página no encontrada.",
   "notfound.no_kanji": "No hay ningún kanji jōyō «{char}» en la base de datos.",
   "notfound.not_word": "«{word}» no es una palabra del diccionario ni una secuencia de kanji jōyō que descomponer.",
   "notfound.back": "Volver a la búsqueda",
-
   "about.title": "Acerca de {site}",
   "about.body_html": "<p>{site} es una herramienta de consulta gratuita para los <strong>2136 kanji jōyō</strong>, el conjunto que se enseña a lo largo de la escolaridad japonesa. Busca cualquier carácter (o un significado en inglés, o una lectura) y obtendrás su desglose en componentes, sus significados y lecturas on’yomi / kun’yomi, un diagrama animado del orden de trazos, las palabras comunes que lo usan, los kanji relacionados y un breve relato en lenguaje sencillo de <em>cómo la forma llegó a portar ese significado</em>.</p>\n<p>Existe porque esa última parte —la historia de origen— suele ser la más difícil de encontrar. El orden de trazos y las lecturas están por todas partes; una explicación de un párrafo sobre por qué 明 es un sol junto a una luna, o sobre que el 青 de 清 es una pista fonética y no un significado, no lo está. {site} toma los datos estructurales de conjuntos de datos abiertos (KanjiVG, KANJIDIC2, JMdict, KRADFILE; véanse los <a href=\"{credits}\">créditos</a>) y asocia a cada carácter una etimología generada, en lenguaje sencillo, para que todo el panorama quepa en una sola página.</p>\n<p>Es una referencia, no un curso: sin cuentas, sin lecciones, sin cuestionarios, sin seguimiento del progreso. Las explicaciones de origen se generan automáticamente y pueden contener errores.</p>",
   "about.contact_html": "Preguntas o correcciones: <a href=\"mailto:{email}\">{email}</a>.",
-
   "privacy.title": "Política de privacidad",
   "privacy.updated": "Última actualización: 30 de agosto de 2026",
   "privacy.body_html": "<p>{site} es un sitio de referencia estático. No tiene cuentas de usuario ni te pide información personal. Esta página explica qué significa eso en la práctica.</p>\n<h2>Qué recopilamos hoy</h2>\n<ul>\n<li><strong>Nada que te identifique.</strong> No hay registros, ni inicios de sesión, ni formularios.</li>\n<li><strong>Tus preferencias de tema e idioma</strong> se guardan en tu navegador (localStorage / una cookie). Permanecen en tu dispositivo.</li>\n<li><strong>Registros de servidor estándar.</strong> Como casi cualquier sitio web, el servidor puede registrar brevemente datos de la petición, como tu dirección IP, la página solicitada y la cadena user-agent de tu navegador, con fines de seguridad y depuración.</li>\n<li><strong>Almacenamiento en caché sin conexión.</strong> Un service worker guarda copias de páginas y recursos en la caché de tu navegador para que las páginas visitadas carguen sin conexión. Estos datos permanecen en tu dispositivo.</li>\n</ul>\n<h2>Publicidad</h2>\n<p>{site} muestra anuncios mediante <strong>Google AdSense</strong> para cubrir los costes de alojamiento. Google y sus socios pueden usar <strong>cookies y tecnologías similares</strong> para publicar y medir anuncios, incluidos anuncios basados en tus visitas previas a este y otros sitios. Esos datos los recopila y controla Google, no {site}.</p>\n<p>Puedes revisar y controlar la personalización de anuncios en <a href=\"https://myadcenter.google.com/\" rel=\"noopener\">myadcenter.google.com</a>, y rechazar la publicidad personalizada de muchos proveedores en <a href=\"https://optout.aboutads.info/\" rel=\"noopener\">optout.aboutads.info</a> o <a href=\"https://www.youronlinechoices.eu/\" rel=\"noopener\">youronlinechoices.eu</a>. Hay más información en <a href=\"https://policies.google.com/technologies/partner-sites\" rel=\"noopener\">«Cómo utiliza Google la información de sitios o aplicaciones que usan nuestros servicios»</a>.</p>\n<h2>Analítica</h2>\n<p>Ninguna por ahora.</p>\n<h2>Fuentes de datos</h2>\n<p>Los datos de los kanji proceden de conjuntos de datos públicos con licencia libre (indicados en la página de <a href=\"{credits}\">créditos</a>). No se envía ninguna información sobre ti a esos proyectos.</p>\n<h2>Menores</h2>\n<p>El sitio no está dirigido a menores de 13 años y no recopila conscientemente información sobre ellos.</p>\n<h2>Contacto</h2>\n<p>Preguntas sobre privacidad: <a href=\"mailto:{email}\">{email}</a>.</p>",
-
   "credits.title": "Créditos y licencias",
   "credits.intro_html": "{site} está construido por completo a partir de datos con licencia libre. Como KanjiVG tiene licencia de compartir igual (CC BY-SA), la base de datos derivada y las páginas de este sitio también se ofrecen bajo <strong>CC BY-SA</strong>.",
   "credits.field_author": "Autor",
@@ -181,7 +163,6 @@
   "credits.other_title": "Otros",
   "credits.wanakana_html": "<a href=\"https://github.com/WaniKani/WanaKana\">WanaKana</a> (MIT) convierte la entrada de búsqueda en rōmaji a kana.",
   "credits.build_line": "Base de datos compilada el {timestamp}.",
-
   "seo.default_tagline": "orígenes de los kanji jōyō, orden de trazos y lecturas",
   "seo.default_description": "Busca cualquiera de los {count} kanji jōyō: cómo se descompone, qué significa, cómo se lee, su orden de trazos y una historia de origen en lenguaje sencillo.",
   "seo.kanji_description": "{literal}{paren} significa {meanings}: consulta su historia de origen, orden de trazos, lecturas y kanji relacionados en {site}.",

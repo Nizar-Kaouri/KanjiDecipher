@@ -8,3 +8,8 @@ data/kanji.db-wal
 data/kanji.db-shm
 *.log
 .DS_Store
+
+# API keys (origin-story generation / translation)
+pipeline/.gemini_key
+*.key
+*_key.txt
