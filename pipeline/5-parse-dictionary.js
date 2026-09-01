@@ -12,6 +12,8 @@
  *   node pipeline/5-parse-dictionary.js
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { openDb } from "./lib/db.js";
 import {
   DB_PATH,
@@ -166,6 +168,38 @@ async function main() {
     }
     db.exec("COMMIT");
     console.log(`  example_words (${site}): ${n} translated rows (${map.size} words matched)`);
+  }
+
+  // ---- hand-written gloss supplements (words the editions don't cover) ---
+  const supPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "data",
+    "gloss-supplements.json",
+  );
+  if (fs.existsSync(supPath)) {
+    const sup = JSON.parse(fs.readFileSync(supPath, "utf8"));
+    const wordSlots = new Map(); // word -> [{ch, order, reading, priority}]
+    for (const p of picked) {
+      if (!wordSlots.has(p.word)) wordSlots.set(p.word, []);
+      wordSlots.get(p.word).push(p);
+    }
+    const has = db.prepare(
+      "SELECT 1 FROM example_words WHERE lang=? AND word=? AND kanji_literal=? LIMIT 1",
+    );
+    for (const [site, entries] of Object.entries(sup)) {
+      if (site.startsWith("_")) continue;
+      let n = 0;
+      db.exec("BEGIN");
+      for (const [word, gloss] of Object.entries(entries)) {
+        for (const s of wordSlots.get(word) || []) {
+          if (has.get(site, word, s.ch)) continue;
+          insWord.run(s.ch, site, word, s.reading, gloss, s.priority, s.order);
+          n++;
+        }
+      }
+      db.exec("COMMIT");
+      if (n) console.log(`  example_words (${site}): +${n} rows from gloss-supplements.json`);
+    }
   }
 
   // ---- kanji_parts (KRADFILE) ------------------------------------------
