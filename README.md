@@ -157,18 +157,23 @@ flat, ranked list; each item carries an `href` so word and kanji hits mix) and
 shows a keyboard-navigable dropdown. `GET /api/search?q=` returns the full
 `unifiedSearch` result as JSON.
 
-### Browse & radicals
+### Browse, radicals & sound series
 
 - `GET /browse` — filter the jōyō set by grade / JLPT / stroke count / formation
   type, sort by frequency / strokes / radical, 60 per page.
 - `GET /radicals` — component picker; `radicals.js` calls
   `GET /api/by-radicals?parts=一,口` (kanji containing **all** the given parts).
+- `GET /sounds` + `GET /sound/:element` — every set of jōyō kanji built on a
+  shared sound-hint component (~273 sets), with the on-reading they have in
+  common. Computed once at boot into `PHONETIC_SERIES`.
 
 ### Related kanji (detail page)
 
-Each kanji page shows up to three rails: **same sound component** (the phonetic
-series, e.g. 青 → 清 晴 請 精 情), **same Kangxi radical**, and **shares
-components**. Kanji named in the origin story are auto-linked (`linkifyKanji`).
+Each kanji page shows up to three "related" rails — **same sound component**
+(links to its `/sound/` series), **same Kangxi radical**, **shares components**
+— plus an **easily-confused** rail (`CONFUSABLES`: KRADFILE part-overlap + a ≤1
+stroke gap, plus a curated list for single-primitive near-homographs like
+未/末/木/本). Kanji named in the origin story are auto-linked (`linkifyKanji`).
 
 ## Formation type
 
@@ -240,9 +245,12 @@ cookie.
   does the same for the per-kanji meaning glosses (de, ja) and
   `4d-translate-glosses.js` for the jukugo glosses (ja). `pipeline/lib/gemini.js`
   is the shared client; key from `GEMINI_API_KEY` or `pipeline/.gemini_key`.
-- **SEO** — `<html lang>`, per-language `hreflang` alternates + `x-default`,
-  language-prefixed `canonical`, and a **sitemap index** (`/sitemap.xml`) over
-  per-language `/sitemap-<lang>.xml`.
+- **SEO** — `<html lang>`, regionalised `og:locale` (from each catalog's
+  `_meta`), per-language `hreflang` alternates + `x-default`, language-prefixed
+  `canonical`, and a **sitemap index** (`/sitemap.xml`) over per-language
+  `/sitemap-<lang>.xml` (with `lastmod`). When `SITE_URL` is set, any request on
+  a non-canonical host (www vs apex, `*.onrender.com`) gets a 301 to the
+  canonical origin.
 
 Run order for the language data: `npm run pipeline:download` (fetches the JMdict
 fr/es/de editions too) → `pipeline:kanjidic` → `pipeline:build` → `pipeline:dictionary`.
@@ -258,9 +266,9 @@ The data layer still degrades cleanly on an English-only DB.
   `partials/head.ejs` renders them plus `canonical`, Open Graph, and `noindex`
   for search-result / filtered-browse pages.
 - **`/sitemap.xml`** — generated from the DB (all 2,136 kanji, every JMdict
-  headword as a `/word/` URL, and the static routes), cached in memory.
-  **`/robots.txt`** points to it. Both build absolute URLs from `SITE_URL` (set it
-  in production) or the request `Host` header.
+  headword as a `/word/` URL, the ~273 `/sound/` series, and the static routes),
+  cached in memory. **`/robots.txt`** points to it. Both build absolute URLs from
+  `SITE_URL` (set it in production) or the request `Host` header.
 - **PWA** — `manifest.webmanifest` + `sw.js` (served with `Cache-Control:
   no-cache`). The service worker precaches the shell, serves static assets
   cache-first, and pages network-first with a cache fallback, so any kanji page
