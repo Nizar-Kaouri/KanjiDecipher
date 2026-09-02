@@ -264,6 +264,9 @@ function searchMeaningLocalized(q, lang) {
   const needle = foldText(q.trim());
   if (!needle) return [];
   const words = needle.split(/\s+/).filter(Boolean);
+  // CJK meaning queries have no word boundaries, so \b-style matching never
+  // fires; fall back to a plain substring test for them.
+  const cjkNeedle = needle.length >= 2 && /[぀-ヿ㐀-鿿]/.test(needle);
   const esc = escapeRegex(needle);
   // Unicode-aware "flanked by non-letters" — works for accented queries where
   // JS \b (ASCII-only) would not.
@@ -280,6 +283,7 @@ function searchMeaningLocalized(q, lang) {
       else if (wholeRe.test(ml)) s = 3;
       else if (words.length > 1 && words.every((w) => ml.includes(w))) s = 2;
       else if (needle.length >= 5 && prefixRe.test(ml)) s = 1;
+      else if (cjkNeedle && ml.includes(needle)) s = 1;
       if (s > score || (s === score && i < at)) { score = s; at = i; }
     });
     if (score) hits.push({ literal, score, at });

@@ -5,7 +5,7 @@
   if (!btn || !grid) return;
 
   var LANG = document.documentElement.lang || "en";
-  var LP = ["fr", "es", "pt", "de"].indexOf(LANG) >= 0 ? "/" + LANG : "";
+  var LP = ["fr", "es", "pt", "de", "ja"].indexOf(LANG) >= 0 ? "/" + LANG : "";
 
   function esc(s) {
     var d = document.createElement("div");

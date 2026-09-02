@@ -107,7 +107,7 @@ pipeline/
 web/
   server.js               Express + node:sqlite (read-only), EJS views
   i18n.js                 locale catalogs + t() helper + /xx prefix regex
-  locales/                en.json (source of truth) + fr/es/pt/de.json
+  locales/                en.json (source of truth) + fr/es/pt/de/ja.json
   gen-icons.js            one-off: build the PWA / touch icons  (npm run icons)
   views/                  home, results, kanji, word, browse, radicals, credits, about, privacy, 404
   views/partials/         head, foot, kanji-chip
@@ -195,32 +195,36 @@ section depending on what you decide.
 
 ## Languages (framework)
 
-The site can serve **English (default), French, Spanish, Portuguese, German**.
-Non-English languages get a URL prefix: `/fr/kanji/水`, `/es/browse`, … English
-has no prefix. A header dropdown (`public/lang.js`) rewrites the current path,
-sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
+The site can serve **English (default), French, Spanish, Portuguese, German,
+Japanese**. Non-English languages get a URL prefix: `/fr/kanji/水`, `/ja/browse`,
+… English has no prefix. A header dropdown (`public/lang.js`) rewrites the
+current path, sets a `lang` cookie, and navigates; the bare `/` honours that
+cookie.
 
 - **UI strings** live in `web/locales/<lang>.json` (flat key → string). `en.json`
   is the source of truth; any missing/empty key in another language falls back to
   English, then to the key name. Views call `t('key', { vars })` (`res.locals.t`,
-  bound to the request language). All five catalogs are **fully translated** —
+  bound to the request language). All six catalogs are **fully translated** —
   chrome, buttons, SEO meta, and the about / privacy / credits prose.
 - **Kanji meanings** — `1-parse-kanjidic2.js` captures the French / Spanish /
   Portuguese meanings KANJIDIC2 ships (fr 1987 / es 2063 / pt 1939 of 2136;
-  German has none → English). `3-build-db.js` stores them in
+  German and Japanese have none). `3-build-db.js` stores them in
   `kanji_meanings_l10n`; `meaningsOf(literal, lang)` falls back to English
-  per-kanji. **Live.**
+  per-kanji. de + ja are machine-translated in full (2,136 each,
+  `4c-translate-meanings.js`). **Live.**
 - **Example-word glosses** — `5-parse-dictionary.js` pulls the JMdict `fre` /
-  `spa` / `ger` editions and fills `example_words` with a `lang` column (fr
-  10.5k / es 10.4k / de 13.9k translated rows; no Portuguese edition → English).
-  `exampleWordsFor()` keeps the English word selection and swaps each gloss for
-  its translation where one exists. **Live.**
+  `spa` / `ger` editions and fills `example_words` with a `lang` column, then
+  applies `pipeline/data/gloss-supplements.json` (hand / machine glosses for
+  words an edition misses). There is no JMdict `por` or `jpn` edition, so those
+  two are supplied entirely through the supplements file (pt hand-translated,
+  ja machine — `4d-translate-glosses.js`). Every language now has full parity:
+  **14,035 rows / 10,335 words each.** `exampleWordsFor()` keeps the English
+  word selection and swaps each gloss for its translation. **Live.**
 - **Meaning search** — each language scans its own `kanji_meanings_l10n` set
-  (held in memory) with accent-folded, position-weighted matching. A localised
+  (held in memory) with accent-folded, position-weighted matching (plus a
+  substring pass for CJK queries, which have no word boundaries). A localised
   page shows **no** English meaning results; the English gloss index is used
-  only for a language that has zero meaning data (none do). German meanings are
-  machine-translated (`4c-translate-meanings.js`, ~2,090 of 2,136 — rerun for
-  the rest); fr/es/pt come from KANJIDIC2.
+  only for a language that has zero meaning data (none do).
 - **Origin stories** — `origin_stories(literal, lang, …)` holds translated
   stories (a page shows English + a note when its language has none yet).
   `4b-translate-stories.js` translates the English stories with the Google
@@ -231,11 +235,11 @@ sets a `lang` cookie, and navigates; the bare `/` honours that cookie.
   node pipeline/4b-translate-stories.js --lang fr    # ~7 min, free tier
   ```
 
-  All four languages done (2,136 each, `gemini-flash-lite-latest`). Batches
-  auto-split and retry on a bad JSON response. `4c-translate-meanings.js` does
-  the same for the per-kanji meaning glosses (used for German, which KANJIDIC2
-  doesn't cover). `pipeline/lib/gemini.js` is the shared client; key from
-  `GEMINI_API_KEY` or `pipeline/.gemini_key`.
+  All five non-English languages done (2,136 each, `gemini-flash-lite-latest`).
+  Batches auto-split and retry on a bad JSON response. `4c-translate-meanings.js`
+  does the same for the per-kanji meaning glosses (de, ja) and
+  `4d-translate-glosses.js` for the jukugo glosses (ja). `pipeline/lib/gemini.js`
+  is the shared client; key from `GEMINI_API_KEY` or `pipeline/.gemini_key`.
 - **SEO** — `<html lang>`, per-language `hreflang` alternates + `x-default`,
   language-prefixed `canonical`, and a **sitemap index** (`/sitemap.xml`) over
   per-language `/sitemap-<lang>.xml`.
