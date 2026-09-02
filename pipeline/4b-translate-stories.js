@@ -35,7 +35,7 @@ import {
   sleep,
 } from "./lib/gemini.js";
 
-const LANG_NAMES = { fr: "French", es: "Spanish", pt: "Portuguese", de: "German" };
+const LANG_NAMES = { fr: "French", es: "Spanish", pt: "Portuguese", de: "German", ja: "Japanese" };
 
 // Keep kanji-etymology jargon consistent with web/locales/<lang>.json.
 const GLOSSARY = {
@@ -43,6 +43,7 @@ const GLOSSARY = {
   es: '"sound hint" → «pista fonética»; "radical" → «radical»; "component" → «componente»; "meaning part" → «parte de significado»; "stroke(s)" → «trazo(s)»; "stroke order" → «orden de trazos»; "pictograph" → «pictograma»',
   pt: '"sound hint" → «pista fonética»; "radical" → «radical»; "component" → «componente»; "meaning part" → «parte de significado»; "stroke(s)" → «traço(s)»; "stroke order" → «ordem dos traços»; "pictograph" → «pictograma»',
   de: '"sound hint" → „Lauthinweis“; "radical" → „Radikal“; "component" → „Bestandteil“; "meaning part" → „Bedeutungsteil“; "stroke(s)" → „Strich(e)“; "stroke order" → „Strichreihenfolge“; "pictograph" → „Piktogramm“',
+  ja: '"sound hint" → 「音符」; "radical" → 「部首」; "component" → 「構成要素」; "meaning part" → 「意符」; "stroke(s)" → 「画」; "stroke order" → 「筆順」; "pictograph" → 「象形文字」; "compound ideograph" → 「会意文字」; "phono-semantic" → 「形声文字」',
 };
 
 function parseArgs(argv) {
@@ -65,6 +66,11 @@ function parseArgs(argv) {
 function buildPrompt(langName, glossary, batch) {
   const obj = {};
   for (const r of batch) obj[r.literal] = r.origin_story;
+  const jaNote =
+    langName === "Japanese"
+      ? `- Write in plain, neutral Japanese (です・ます調), the register of a school kanji reference. ` +
+        `Do not add honorifics, filler, or commentary the English text doesn't have.\n`
+      : "";
   return (
     `Translate each of the following English texts into natural, fluent ${langName}. ` +
     `They are short, plain-language explanations of the origins of Japanese kanji, ` +
@@ -73,6 +79,7 @@ function buildPrompt(langName, glossary, batch) {
     `- Preserve meaning, tone and register. Plain and clear, not academic.\n` +
     `- Keep every Japanese character (kanji, kana) exactly as written.\n` +
     `- Use this terminology: ${glossary}.\n` +
+    jaNote +
     `- Translate only — do not add, drop, or explain anything.\n` +
     `- Return ONLY a JSON object mapping each key to its ${langName} translation, ` +
     `with exactly the same keys as the input.\n\n` +

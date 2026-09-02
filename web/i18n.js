@@ -16,7 +16,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const LOCALES_DIR = path.join(here, "locales");
 
 // Order = order shown in the language dropdown. English first (no URL prefix).
-export const LANGS = ["en", "fr", "es", "pt", "de"];
+export const LANGS = ["en", "fr", "es", "pt", "de", "ja"];
 
 // Non-English languages get a "/xx" path prefix. Keep this in sync with LANGS
 // and with the regex in lang.js.

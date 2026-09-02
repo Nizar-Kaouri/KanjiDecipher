@@ -27,7 +27,7 @@ import {
   sleep,
 } from "./lib/gemini.js";
 
-const LANG_NAMES = { fr: "French", es: "Spanish", pt: "Portuguese", de: "German" };
+const LANG_NAMES = { fr: "French", es: "Spanish", pt: "Portuguese", de: "German", ja: "Japanese" };
 
 function parseArgs(argv) {
   const a = { batch: 40, rpm: 12, model: MODEL_DEFAULT };
@@ -49,14 +49,19 @@ function parseArgs(argv) {
 function buildPrompt(langName, batch) {
   const obj = {};
   for (const r of batch) obj[r.literal] = r.meanings;
+  const jaNote =
+    langName === "Japanese"
+      ? `- Give the Japanese word or short phrase that expresses that sense (kun'yomi verb/adjective ` +
+        `where natural, e.g. "to be sparing" → 惜しむ). A one- or two-word gloss is ideal; it is fine ` +
+        `if it restates the kanji.\n`
+      : `- Keep them short and idiomatic for a ${langName} dictionary (in German, capitalise nouns).\n`;
   return (
     `Translate these English kanji meaning glosses into ${langName}. Each kanji ` +
     `maps to a list of short English glosses (dictionary style, usually 1–4 words each).\n\n` +
     `Rules:\n` +
     `- Return ONLY a JSON object: the same kanji keys, each mapped to an array of ` +
     `${langName} glosses — one per input gloss, in the same order and the same count.\n` +
-    `- Keep them short and idiomatic for a ${langName} dictionary (in German, ` +
-    `capitalise nouns).\n` +
+    jaNote +
     `- Keep parenthetical notes such as "(no. 61)", "(kokuji)", "(counter)".\n` +
     `- If a gloss is a proper noun or has no good ${langName} equivalent, keep it as is.\n` +
     `- Do not add explanations.\n\n` +

@@ -2,7 +2,7 @@
 // chosen "/xx" prefix (English = no prefix), remembers the choice in a cookie,
 // and navigates. Keep the language list in sync with web/i18n.js.
 (function () {
-  var PREFIXED = ["fr", "es", "pt", "de"];
+  var PREFIXED = ["fr", "es", "pt", "de", "ja"];
   var sel = document.querySelector("[data-lang-switch]");
   if (!sel) return;
 
