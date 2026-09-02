@@ -642,26 +642,18 @@ const GENERIC_ELEMENTS = new Set([..."一丨丶丿乀乁乚亅乙二亠八丷冂
 // ---------- app ----------
 
 const app = express();
+// Behind Render's proxy: trust X-Forwarded-* so req.protocol / req.ip are right.
+app.set("trust proxy", 1);
 app.set("view engine", "ejs");
 app.set("views", path.join(here, "views"));
 app.locals.linkifyKanji = linkifyKanji;
 app.locals.SITE_NAME = "Kanji Decipher";
 app.locals.CONTACT_EMAIL = "p.kaouri@gmail.com";
 
-// Canonical host: in production SITE_URL fixes one host (apex or www). If a
-// request arrives on any other host (the other of apex/www, an old domain, the
-// platform's *.onrender.com URL), 301 it to the canonical one so crawlers see a
-// single origin and the canonical / hreflang tags always match the address bar.
-const CANONICAL_URL = process.env.SITE_URL ? new URL(process.env.SITE_URL) : null;
-if (CANONICAL_URL) {
-  app.use((req, res, next) => {
-    const host = req.get("host");
-    if ((req.method === "GET" || req.method === "HEAD") && host && host !== CANONICAL_URL.host) {
-      return res.redirect(301, `${CANONICAL_URL.protocol}//${CANONICAL_URL.host}${req.originalUrl}`);
-    }
-    next();
-  });
-}
+// Canonical host (apex vs www) and http->https are handled at the edge by the
+// host platform's custom-domain settings, NOT here — an app-level host redirect
+// fights the platform's and causes redirect loops. SITE_URL is used only to
+// build canonical / OG / sitemap URLs (see siteBase()).
 
 // The service worker must be revalidated on every load (so updates ship) and be
 // allowed to control the whole origin. Add those headers, then let express.static
