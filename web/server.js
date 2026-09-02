@@ -12,6 +12,7 @@ import {
   isSupported,
   langName,
   langDir,
+  ogLocale,
   coverage,
   translator,
 } from "./i18n.js";
@@ -165,6 +166,84 @@ const dictStmts = HAS_DICT
     }
   : null;
 
+// Phonetic series: kanji that share a sound-hint component. Precomputed once —
+// element -> { members:[{literal,on}], top:<dominant on-reading>, topN }.
+const PHONETIC_SERIES = new Map();
+{
+  const rows = db
+    .prepare(`
+      SELECT c.element, c.kanji_literal AS literal, k.on_readings
+      FROM components c JOIN kanji k ON k.literal = c.kanji_literal
+      WHERE c.is_phonetic = 1
+      ORDER BY (k.freq IS NULL), k.freq, k.literal`)
+    .all();
+  const byEl = new Map();
+  for (const r of rows) {
+    if (!byEl.has(r.element)) byEl.set(r.element, new Map());
+    const m = byEl.get(r.element);
+    if (!m.has(r.literal)) m.set(r.literal, { literal: r.literal, on: safeParse(r.on_readings) });
+  }
+  for (const [el, m] of byEl) {
+    const members = [...m.values()];
+    if (members.length < 2) continue;
+    const tally = new Map();
+    for (const mem of members) {
+      const first = mem.on[0];
+      if (first) tally.set(first, (tally.get(first) || 0) + 1);
+    }
+    let top = null;
+    let topN = 0;
+    for (const [rdg, n] of tally) if (n > topN) { top = rdg; topN = n; }
+    PHONETIC_SERIES.set(el, { members, top, topN });
+  }
+}
+
+// Easily-confused kanji: near-homographs a learner mixes up (未/末, 大/犬/太).
+// Computed from KRADFILE part overlap + a ≤1 stroke-count gap, plus a short
+// curated list for single-primitive pairs KRADFILE can't decompose usefully.
+const CONFUSABLES = new Map(); // literal -> [literal]
+if (HAS_DICT) {
+  const parts = new Map();
+  for (const r of db.prepare("SELECT kanji_literal, part FROM kanji_parts").all()) {
+    if (!parts.has(r.kanji_literal)) parts.set(r.kanji_literal, new Set());
+    parts.get(r.kanji_literal).add(r.part);
+  }
+  const strokes = new Map(
+    db.prepare("SELECT literal, stroke_count FROM kanji").all().map((r) => [r.literal, r.stroke_count]),
+  );
+  const byPart = new Map();
+  for (const [lit, set] of parts)
+    for (const p of set) {
+      if (!byPart.has(p)) byPart.set(p, []);
+      byPart.get(p).push(lit);
+    }
+  const add = (a, b) => {
+    if (!KANJI_SET.has(a) || !KANJI_SET.has(b) || a === b) return;
+    if (!CONFUSABLES.has(a)) CONFUSABLES.set(a, new Set());
+    CONFUSABLES.get(a).add(b);
+  };
+  for (const [lit, set] of parts) {
+    if (!set.size) continue;
+    const sc = strokes.get(lit) ?? 0;
+    const shared = new Map();
+    for (const p of set) for (const o of byPart.get(p)) if (o !== lit) shared.set(o, (shared.get(o) || 0) + 1);
+    const scored = [];
+    for (const [o, sh] of shared) {
+      const os = parts.get(o);
+      const sd = Math.abs(sc - (strokes.get(o) ?? 0));
+      if (sd > 1) continue;
+      const jac = sh / (set.size + os.size - sh);
+      if (jac === 1 || (jac >= 0.6 && set.size >= 2)) scored.push({ o, jac, sd });
+    }
+    scored.sort((a, b) => b.jac - a.jac || a.sd - b.sd || freqRank(a.o) - freqRank(b.o));
+    for (const x of scored.slice(0, 6)) add(lit, x.o);
+  }
+  for (const group of ["未末木本", "大犬太", "土士", "干千", "己已巳", "内肉", "王玉主", "石右", "力刀", "牛午", "鳥烏", "貝見", "季委", "拾捨", "貧貪"]) {
+    const g = [...group];
+    for (const a of g) for (const b of g) add(a, b);
+  }
+}
+
 const relStmts = {
   samePhonetic: db.prepare(`
     SELECT DISTINCT c.kanji_literal AS literal, k.meanings, k.freq
@@ -244,13 +323,17 @@ const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Lower-case + strip diacritics + expand ligatures, so a meaning search matches
 // with or without accents ("cafe" ↔ "café", "coracao" ↔ "coração", "cœur" ↔ "coeur").
+// Katakana → hiragana as well, so a Japanese meaning query is kana-insensitive
+// (セイ ↔ せい). The codepoint shift touches the katakana block only — it leaves
+// romaji alone, unlike wanakana.toHiragana.
 const foldText = (s) =>
   String(s)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/œ/g, "oe")
-    .replace(/æ/g, "ae");
+    .replace(/æ/g, "ae")
+    .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
 /**
  * Meaning search against a non-English meaning set (kanji_meanings_l10n, held in
@@ -503,6 +586,12 @@ function lookupKanji(literal, lang = "en") {
     sharesComponents = toChips(rows, lang, exclude).slice(0, 12);
   }
 
+  const confusable = toChips(
+    [...(CONFUSABLES.get(literal) || [])].map((l) => ({ literal: l })),
+    lang,
+    new Set([literal]),
+  ).slice(0, 6);
+
   return {
     ...row,
     origin_story: originStory,
@@ -511,8 +600,10 @@ function lookupKanji(literal, lang = "en") {
     exampleWords,
     samePhonetic: samePhoneticChips.slice(0, 14),
     samePhoneticLabels: phoneticEls,
+    samePhoneticLinkable: phoneticEls.filter((e) => PHONETIC_SERIES.has(e)),
     sameRadical: sameRadical.slice(0, 14),
     sharesComponents,
+    confusable,
   };
 }
 
@@ -539,6 +630,21 @@ app.set("views", path.join(here, "views"));
 app.locals.linkifyKanji = linkifyKanji;
 app.locals.SITE_NAME = "Kanji Decipher";
 app.locals.CONTACT_EMAIL = "p.kaouri@gmail.com";
+
+// Canonical host: in production SITE_URL fixes one host (apex or www). If a
+// request arrives on any other host (the other of apex/www, an old domain, the
+// platform's *.onrender.com URL), 301 it to the canonical one so crawlers see a
+// single origin and the canonical / hreflang tags always match the address bar.
+const CANONICAL_URL = process.env.SITE_URL ? new URL(process.env.SITE_URL) : null;
+if (CANONICAL_URL) {
+  app.use((req, res, next) => {
+    const host = req.get("host");
+    if ((req.method === "GET" || req.method === "HEAD") && host && host !== CANONICAL_URL.host) {
+      return res.redirect(301, `${CANONICAL_URL.protocol}//${CANONICAL_URL.host}${req.originalUrl}`);
+    }
+    next();
+  });
+}
 
 // The service worker must be revalidated on every load (so updates ship) and be
 // allowed to control the whole origin. Add those headers, then let express.static
@@ -595,6 +701,7 @@ app.use((req, res, next) => {
   res.locals.lp = lp;
   res.locals.langDir = langDir(lang);
   res.locals.langLabel = langName(lang);
+  res.locals.ogLocale = ogLocale(lang);
   res.locals.t = tt;
   res.locals.linkifyKanji = (text) => linkifyKanji(text, lp);
   res.locals.siteUrl = base;
@@ -954,10 +1061,71 @@ app.get("/credits", (req, res) => {
   res.render("credits", { meta: META, ...pageSeo(res.locals.t, "credits") });
 });
 
+// ---------- phonetic series (sound-hint component → kanji that share it) ----------
+
+app.get("/sounds", (req, res) => {
+  const { lang } = res.locals;
+  const series = [...PHONETIC_SERIES.entries()]
+    .map(([element, s]) => ({
+      element,
+      count: s.members.length,
+      top: s.top,
+      isKanji: KANJI_SET.has(element),
+      preview: s.members.slice(0, 5).map((m) => m.literal),
+    }))
+    .sort((a, b) => b.count - a.count || (a.top || "￿").localeCompare(b.top || "￿"));
+  res.render("sounds", {
+    meta: META,
+    series,
+    total: series.length,
+    ...pageSeo(res.locals.t, "sounds"),
+  });
+});
+
+app.get("/sound/:element", (req, res) => {
+  const { lang, lp } = res.locals;
+  const tt = res.locals.t;
+  const el = decodeURIComponent(req.params.element);
+  const s = PHONETIC_SERIES.get(el);
+  if (!s) {
+    return res.status(404).render("404", {
+      message: tt("notfound.no_series", { element: el }),
+      title: tt("notfound.title"),
+      noindex: true,
+    });
+  }
+  const members = s.members.map((m) => ({
+    literal: m.literal,
+    meaning: meaningText(m.literal, lang, 3),
+    on: m.on,
+    matches: !!(s.top && m.on.includes(s.top)),
+  }));
+  const elementIsKanji = KANJI_SET.has(el);
+  res.render("sound", {
+    meta: META,
+    element: el,
+    elementIsKanji,
+    elementMeaning: elementIsKanji ? meaningText(el, lang, 3) : null,
+    top: s.top,
+    allShare: members.every((m) => m.matches),
+    members,
+    title: tt("seo.sound_title", { element: el, reading: s.top || "" }),
+    description: tt("seo.sound_description", {
+      element: el,
+      reading: s.top || tt("kanji.meanings_dash"),
+      count: members.length,
+      site: SITE_NAME,
+    }),
+  });
+});
+
 // ---------- sitemap + robots ----------
 
-const SITEMAP_STATIC = ["/", "/browse", "/radicals", "/about", "/privacy", "/credits"];
+const SITEMAP_STATIC = ["/", "/browse", "/radicals", "/sounds", "/about", "/privacy", "/credits"];
 const sitemapCache = new Map(); // key -> xml
+// One honest site-wide lastmod: the DB is rebuilt as a unit.
+const SITEMAP_LASTMOD = (META.dict_built_at || META.build_timestamp || "").slice(0, 10);
+const lastmodTag = SITEMAP_LASTMOD ? `<lastmod>${SITEMAP_LASTMOD}</lastmod>` : "";
 
 function buildSitemapIndex(base) {
   const body = LANGS.map(
@@ -980,12 +1148,13 @@ function buildSitemap(base, lang) {
   const paths = [
     ...SITEMAP_STATIC,
     ...kanji.map((k) => `/kanji/${encodeURIComponent(k.literal)}`),
+    ...[...PHONETIC_SERIES.keys()].map((el) => `/sound/${encodeURIComponent(el)}`),
     ...words.map((w) => `/word/${encodeURIComponent(w.word)}`),
   ];
   return (
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    paths.map((p) => `  <url><loc>${base}${lp}${p}</loc></url>`).join("\n") +
+    paths.map((p) => `  <url><loc>${base}${lp}${p}</loc>${lastmodTag}</url>`).join("\n") +
     "\n</urlset>\n"
   );
 }

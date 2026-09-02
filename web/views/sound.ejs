@@ -1,0 +1,42 @@
+<%- include('partials/head', { pageClass: 'page-sound' }) %>
+
+<article class="sound-detail">
+  <header class="sd-head">
+    <span class="sd-glyph" lang="ja"><%= element %></span>
+    <div class="sd-info">
+      <h1><%= t('sound.heading', { element: element }) %></h1>
+      <% if (top) { %>
+        <p class="sd-reading">
+          <%= allShare ? t('sound.all_read', { reading: top }) : t('sound.mostly_read', { reading: top }) %>
+        </p>
+      <% } else { %>
+        <p class="sd-reading muted"><%= t('sound.no_shared') %></p>
+      <% } %>
+      <% if (elementIsKanji) { %>
+        <p><a class="kref" href="<%= lp %>/kanji/<%= encodeURIComponent(element) %>"><%= t('sound.element_page', { element: element }) %> &rarr;</a></p>
+      <% } %>
+    </div>
+  </header>
+
+  <p class="note"><%= t('sound.intro', { element: element }) %></p>
+
+  <ul class="sd-members">
+    <% members.forEach(function (m) { %>
+      <li class="<%= m.matches ? 'match' : '' %>">
+        <a href="<%= lp %>/kanji/<%= encodeURIComponent(m.literal) %>">
+          <span class="sm-glyph" lang="ja"><%= m.literal %></span>
+          <span class="sm-body">
+            <span class="sm-on kana">
+              <% m.on.forEach(function (r, i) { %><span class="<%= (top && r === top) ? 'on-hit' : '' %>"><%= r %></span><% if (i < m.on.length - 1) { %>、<% } %><% }) %>
+            </span>
+            <span class="sm-gloss"><%= m.meaning %></span>
+          </span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+
+  <p class="sd-back"><a href="<%= lp %>/sounds">&larr; <%= t('sound.all_series') %></a></p>
+</article>
+
+<%- include('partials/foot', { pageClass: 'page-sound' }) %>

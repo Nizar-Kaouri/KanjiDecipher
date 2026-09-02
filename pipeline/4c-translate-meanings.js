@@ -138,9 +138,14 @@ async function main() {
       const out = await callGeminiJson(args.model, key, buildPrompt(langName, group));
       const missing = [];
       for (const r of group) {
-        const arr = out[r.literal];
+        let arr = out[r.literal];
         if (Array.isArray(arr) && arr.length && arr.every((x) => typeof x === "string" && x.trim())) {
-          upsert.run(r.literal, args.lang, JSON.stringify(arr.map((x) => x.trim())));
+          arr = arr.map((x) => x.trim());
+          // Near-synonymous English senses often collapse to one word in the
+          // target (esp. ja: purify / cleanse / exorcise → 清める). Drop exact
+          // repeats so a card doesn't read "清める, 清める, 清める".
+          arr = arr.filter((x, i) => arr.indexOf(x) === i);
+          upsert.run(r.literal, args.lang, JSON.stringify(arr));
           done++;
         } else {
           missing.push(r);

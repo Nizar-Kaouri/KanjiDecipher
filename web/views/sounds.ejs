@@ -1,0 +1,24 @@
+<%- include('partials/head', { pageClass: 'page-sounds' }) %>
+
+<h1><%= t('sounds.heading') %></h1>
+<p class="note"><%- t('sounds.intro_html') %></p>
+<p class="legal-meta"><%= t('sounds.count', { n: total }) %></p>
+
+<ul class="series-grid">
+  <% series.forEach(function (s) { %>
+    <li>
+      <a href="<%= lp %>/sound/<%= encodeURIComponent(s.element) %>">
+        <span class="sg-glyph" lang="ja"><%= s.element %></span>
+        <span class="sg-body">
+          <span class="sg-top">
+            <% if (s.top) { %><span class="kana"><%= s.top %></span><% } %>
+            <span class="sg-count"><%= t('sounds.series_count', { n: s.count }) %></span>
+          </span>
+          <span class="sg-preview" lang="ja"><%= s.preview.join('') %></span>
+        </span>
+      </a>
+    </li>
+  <% }) %>
+</ul>
+
+<%- include('partials/foot', { pageClass: 'page-sounds' }) %>

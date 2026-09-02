@@ -25,7 +25,7 @@
   <meta property="og:site_name" content="<%= SITE_NAME %>">
   <meta property="og:title" content="<%= _title %>">
   <meta property="og:description" content="<%= _desc %>">
-  <meta property="og:locale" content="<%= lang %>">
+  <meta property="og:locale" content="<%= typeof ogLocale !== 'undefined' ? ogLocale : lang %>">
   <% if (typeof canonical !== 'undefined') { %><meta property="og:url" content="<%= canonical %>"><% } %>
   <meta name="twitter:card" content="summary">
 
@@ -60,6 +60,7 @@
   <nav class="site-nav">
     <a href="<%= lp %>/browse"><%= t('nav.browse') %></a>
     <a href="<%= lp %>/radicals"><%= t('nav.radicals') %></a>
+    <a href="<%= lp %>/sounds"><%= t('nav.sounds') %></a>
   </nav>
   <form class="search" action="<%= lp %>/search" method="get" role="search" autocomplete="off">
     <input type="search" name="q" id="q" placeholder="<%= t('search.placeholder') %>"

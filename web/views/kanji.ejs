@@ -6,12 +6,22 @@
   }
   function chipRow(label, items) { %>
     <div class="related-row">
-      <span class="related-label"><%= label %></span>
+      <span class="related-label"><%- label %></span>
       <ul class="kanji-chips">
         <% items.forEach(function (k) { %><%- include('partials/kanji-chip', { k: k }) %><% }) %>
       </ul>
     </div>
 <% }
+
+  // "Same sound component 青" — link each phonetic element to its series page.
+  function sameSoundLabel() {
+    var parts = kanji.samePhoneticLabels.map(function (p) {
+      return kanji.samePhoneticLinkable.indexOf(p) >= 0
+        ? '<a class="kref" href="' + lp + '/sound/' + encodeURIComponent(p) + '">' + p + '</a>'
+        : p;
+    }).join(' ');
+    return t('kanji.same_sound', { parts: parts });
+  }
 %>
 <%- include('partials/head', { pageClass: 'page-kanji' }) %>
 
@@ -107,7 +117,7 @@
   <%
     var relRows = [];
     if (kanji.samePhonetic && kanji.samePhonetic.length)
-      relRows.push([t('kanji.same_sound', { parts: kanji.samePhoneticLabels.join(' ') }), kanji.samePhonetic]);
+      relRows.push([sameSoundLabel(), kanji.samePhonetic]);
     if (kanji.sameRadical && kanji.sameRadical.length)
       relRows.push([t('kanji.same_radical'), kanji.sameRadical]);
     if (kanji.sharesComponents && kanji.sharesComponents.length)
@@ -117,6 +127,16 @@
     <section class="kd-block kd-related">
       <h2><%= t('kanji.related') %></h2>
       <% relRows.forEach(function (r) { chipRow(r[0], r[1]); }) %>
+    </section>
+  <% } %>
+
+  <% if (kanji.confusable && kanji.confusable.length) { %>
+    <section class="kd-block kd-confusable">
+      <h2><%= t('kanji.confusable') %></h2>
+      <p class="note"><%= t('kanji.confusable_note') %></p>
+      <ul class="kanji-chips">
+        <% kanji.confusable.forEach(function (k) { %><%- include('partials/kanji-chip', { k: k }) %><% }) %>
+      </ul>
     </section>
   <% } %>
 

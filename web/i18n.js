@@ -48,6 +48,11 @@ export function langDir(lang) {
   return catalogs[lang]?._meta?.dir || "ltr";
 }
 
+/** Open Graph locale ("ja_JP", "pt_BR") from the catalog's _meta. */
+export function ogLocale(lang) {
+  return catalogs[lang]?._meta?.ogLocale || catalogs.en?._meta?.ogLocale || "en_US";
+}
+
 /** How complete a non-English catalog is (0..1), ignoring _meta. */
 export function coverage(lang) {
   const keys = Object.keys(EN).filter((k) => k !== "_meta");
