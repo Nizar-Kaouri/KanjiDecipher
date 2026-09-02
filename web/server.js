@@ -84,6 +84,23 @@ const originStoryStmt = HAS_ORIGIN_L10N
   ? db.prepare("SELECT story FROM origin_stories WHERE literal=? AND lang=?")
   : null;
 
+// "Why these characters combine to this meaning" notes for jukugo
+// (6-generate-word-origins.js). Only notable=1 rows are shown.
+const HAS_WORD_ORIGINS = hasTable("word_origins");
+const wordOriginStmt = HAS_WORD_ORIGINS
+  ? db.prepare("SELECT note, notable FROM word_origins WHERE word=? AND lang=?")
+  : null;
+
+/** { note, isFallback } for a word in `lang`, English-fallback; null when not notable. */
+function wordOriginFor(word, lang = "en") {
+  if (!wordOriginStmt) return null;
+  const local = wordOriginStmt.get(word, lang);
+  if (local) return local.notable ? { note: local.note, isFallback: false } : null;
+  if (lang === "en") return null;
+  const en = wordOriginStmt.get(word, "en");
+  return en && en.notable ? { note: en.note, isFallback: true } : null;
+}
+
 const EXWORDS_HAS_LANG = !!hasColumn("example_words", "lang");
 
 // ---------- queries ----------
@@ -946,6 +963,7 @@ app.get("/word/:word", (req, res) => {
     entries,
     isExact,
     breakdown,
+    origin: isExact ? wordOriginFor(word, lang) : null,
     meta: META,
     ...wordSeo(word, entries[0] || null, parts, tt),
     // Don't invite crawlers to index unverified kanji combinations.

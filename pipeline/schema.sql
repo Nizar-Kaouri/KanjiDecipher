@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS example_words;
 DROP TABLE IF EXISTS kanji_parts;
 DROP TABLE IF EXISTS radicals;
 DROP TABLE IF EXISTS origin_stories;
+DROP TABLE IF EXISTS word_origins;
 
 CREATE TABLE kanji (
   literal                   TEXT PRIMARY KEY,
@@ -87,6 +88,20 @@ CREATE TABLE origin_stories (
   model        TEXT,
   generated_at TEXT,
   PRIMARY KEY (literal, lang)
+);
+
+-- Short "why do these characters combine to this meaning" notes for jukugo
+-- (6-generate-word-origins.js, then translated). `notable` = 0 when the compound
+-- is just the obvious sum of its parts and the note isn't worth showing.
+-- One row per (word, lang); populated post-build, carried across a rebuild.
+CREATE TABLE word_origins (
+  word         TEXT NOT NULL,
+  lang         TEXT NOT NULL,
+  note         TEXT NOT NULL,
+  notable      INTEGER NOT NULL DEFAULT 0,
+  model        TEXT,
+  generated_at TEXT,
+  PRIMARY KEY (word, lang)
 );
 
 -- ---- dictionary enrichment (populated by 5-parse-dictionary.js; empty otherwise) ----

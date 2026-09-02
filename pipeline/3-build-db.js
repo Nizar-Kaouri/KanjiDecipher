@@ -60,7 +60,7 @@ function main() {
         .all()) {
         preservedStories.set(r.literal, r);
       }
-      for (const t of ["example_words", "kanji_parts", "radicals", "origin_stories"]) {
+      for (const t of ["example_words", "kanji_parts", "radicals", "origin_stories", "word_origins"]) {
         try {
           preservedDict[t] = old.prepare(`SELECT * FROM ${t}`).all();
         } catch {

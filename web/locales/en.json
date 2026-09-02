@@ -83,6 +83,8 @@
   "formation.pictographic-or-simple": "Pictographic or simple",
   "formation.unknown": "Uncertain",
   "word.breakdown": "Breakdown",
+  "word.origin": "Why it means this",
+  "word.origin_fallback_note": "Shown in English — a {lang} version of this note isn’t available yet.",
   "word.what_each_means": "What each character means",
   "word.not_in_dict": "This exact combination isn’t in the dictionary — here’s what each of its characters means.",
   "word.each_links_note": "Each character links to its full entry — origin story, stroke order, and readings.",

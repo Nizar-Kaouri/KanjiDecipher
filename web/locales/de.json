@@ -83,6 +83,8 @@
   "formation.pictographic-or-simple": "Piktografisch oder einfach",
   "formation.unknown": "Unsicher",
   "word.breakdown": "Zerlegung",
+  "word.origin": "Warum diese Bedeutung",
+  "word.origin_fallback_note": "Auf Englisch angezeigt – eine {lang}e Fassung dieser Anmerkung ist noch nicht verfügbar.",
   "word.what_each_means": "Was jedes Zeichen bedeutet",
   "word.not_in_dict": "Diese genaue Kombination steht nicht im Wörterbuch – hier ist die Bedeutung jedes einzelnen Zeichens.",
   "word.each_links_note": "Jedes Zeichen verweist auf seinen vollständigen Eintrag: Ursprungsgeschichte, Strichreihenfolge und Lesungen.",

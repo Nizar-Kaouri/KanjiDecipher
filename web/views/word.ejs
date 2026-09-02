@@ -19,6 +19,16 @@
     <% } %>
   </header>
 
+  <% if (typeof origin !== 'undefined' && origin) { %>
+    <section class="kd-block wd-origin">
+      <h2><%= t('word.origin') %></h2>
+      <p class="origin-text"><%- linkifyKanji(origin.note) %></p>
+      <% if (origin.isFallback) { %>
+        <p class="origin-tag muted"><%= t('word.origin_fallback_note', { lang: langLabel }) %></p>
+      <% } %>
+    </section>
+  <% } %>
+
   <% if (breakdown.length) { %>
     <section class="kd-block wd-breakdown-block">
       <h2><%= isExact ? t('word.breakdown') : t('word.what_each_means') %></h2>

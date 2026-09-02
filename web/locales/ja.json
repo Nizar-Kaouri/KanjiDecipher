@@ -83,6 +83,8 @@
   "formation.pictographic-or-simple": "象形・指事",
   "formation.unknown": "不明",
   "word.breakdown": "分解",
+  "word.origin": "この意味になる理由",
+  "word.origin_fallback_note": "英語で表示しています —— この解説の{lang}版はまだありません。",
   "word.what_each_means": "各字の意味",
   "word.not_in_dict": "この組み合わせは辞書にありません —— 各字の意味は次のとおりです。",
   "word.each_links_note": "各字をクリックすると、成り立ち・筆順・読みの詳しいページに移動します。",

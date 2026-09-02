@@ -83,6 +83,8 @@
   "formation.pictographic-or-simple": "Pictographique ou simple",
   "formation.unknown": "Incertain",
   "word.breakdown": "Décomposition",
+  "word.origin": "Pourquoi ce sens",
+  "word.origin_fallback_note": "Affiché en anglais — une version {lang} de cette note n’est pas encore disponible.",
   "word.what_each_means": "Ce que signifie chaque caractère",
   "word.not_in_dict": "Cette combinaison exacte n’est pas au dictionnaire — voici le sens de chacun de ses caractères.",
   "word.each_links_note": "Chaque caractère renvoie à sa fiche complète : récit d’origine, ordre des traits et lectures.",

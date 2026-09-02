@@ -18,6 +18,7 @@
     "pipeline:translate-glosses": "node pipeline/4d-translate-glosses.js",
     "pipeline": "npm run pipeline:download && npm run pipeline:kanjidic && npm run pipeline:kanjivg && npm run pipeline:build && npm run pipeline:dictionary",
     "stories": "node pipeline/4-generate-origin-stories.js",
+    "word-origins": "node pipeline/6-generate-word-origins.js",
     "icons": "node web/gen-icons.js",
     "web": "node web/server.js",
     "start": "node web/server.js"
